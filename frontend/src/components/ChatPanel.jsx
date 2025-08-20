@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { chatWeb, chatPdf, chatText } from "../api";
-import { Send, RefreshCw, Bot, User, Sparkles, Database } from "lucide-react";
+import { Send, RefreshCw, Bot, User, Sparkles, Database, AlertCircle } from "lucide-react";
 
 export default function ChatPanel() {
   const [sessionId, setSessionId] = useState(() => crypto.randomUUID());
@@ -91,13 +91,20 @@ export default function ChatPanel() {
       </div>
 
       <div className="collection-selector">
-        <Database size={16} />
-        <select value={collection} onChange={e => setCollection(e.target.value)} className="collection-dropdown">
-          <option value="website_docs">📄 Website Docs</option>
-          <option value="pdf">📋 PDF Documents</option>
-          <option value="text">📝 Text Content</option>
-          <option value="custom">⚙️ Custom Collection</option>
-        </select>
+        <div className="collection-controls">
+          <Database size={16} />
+          <select value={collection} onChange={e => setCollection(e.target.value)} className="collection-dropdown">
+            <option value="website_docs">📄 Website Docs</option>
+            <option value="pdf">📋 PDF Documents</option>
+            <option value="text">📝 Text Content</option>
+            <option value="custom">⚙️ Custom Collection</option>
+          </select>
+          
+          <div className="collection-note">
+            <AlertCircle size={14} />
+            <span>Make sure to select the correct data source</span>
+          </div>
+        </div>
 
         {collection === "custom" && (
           <input 
