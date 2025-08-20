@@ -48,21 +48,28 @@ export default function ChatPanel() {
     }
   }
 
+  // FIXED typeWriter to prevent duplicate replies
   function typeWriter(text) {
     return new Promise(resolve => {
       const tokens = Array.from(text);
       let buffer = "";
+
+      // Start with one empty message
+      setMessages(prev => [...prev, { role: "assistant", content: "" }]);
+
       const id = setInterval(() => {
         buffer += tokens.shift() || "";
+
+        setMessages(prev => [
+          ...prev.slice(0, -1),
+          { ...(prev.at(-1) || { role: "assistant", content: "" }), content: buffer }
+        ]);
+
         if (tokens.length === 0) {
           clearInterval(id);
-          setMessages(prev => [...prev, { role: "assistant", content: buffer }]);
           resolve();
-        } else {
-          setMessages(prev => [...prev.slice(0, -1), { ...(prev.at(-1) || { role: "assistant", content: "" }), content: buffer }]);
         }
       }, 15);
-      setMessages(prev => [...prev, { role: "assistant", content: "" }]);
     });
   }
 
@@ -79,7 +86,6 @@ export default function ChatPanel() {
           <span>AI Assistant</span>
           <div className="pulse-indicator" />
         </div>
-        
         <div className="session-info">
           <span className="session-label">Session</span>
           <div className="session-id">{sessionId.slice(0, 8)}</div>
@@ -99,7 +105,6 @@ export default function ChatPanel() {
             <option value="text">📝 Text Content</option>
             <option value="custom">⚙️ Custom Collection</option>
           </select>
-          
           <div className="collection-note">
             <AlertCircle size={14} />
             <span>Make sure to select the correct data source</span>
