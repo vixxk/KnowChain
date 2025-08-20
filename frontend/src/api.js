@@ -11,7 +11,8 @@ const api = axios.create({
 // Chat endpoints (include sessionId automatically)
 export const chatWeb = (data) => api.post("/chat/web", { ...data, sessionId }).then(r => r.data);
 export const chatPdf = (data) => api.post("/chat/pdf", { ...data, sessionId }).then(r => r.data);
-export const chatText = (data) => api.post("/chat/text", { ...data, sessionId }).then(r => r.data);
+export const chatText = ({ query, collectionName, sessionId }) =>
+  api.post("/chat/text", { query, collectionName, sessionId }).then(r => r.data);
 
 // Indexing endpoints
 export const indexWeb = (url) => api.post("/chat/index/web", { url }).then(r => r.data);

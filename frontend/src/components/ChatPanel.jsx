@@ -29,7 +29,7 @@ export default function ChatPanel() {
       } else if (collection === "pdf" || collection === "custom") {
         res = await chatPdf({ sessionId, query, collectionName: currentCollection || "pdf" });
       } else {
-        res = await chatText({ question: query, collectionName: currentCollection || "text" });
+        res = await chatText({ query, collectionName: currentCollection || "text", sessionId });
       }
       const answer = res.answer || "No answer returned.";
       await typeWriter(answer);

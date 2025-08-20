@@ -1,3 +1,4 @@
+// controllers/chatController.js
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import OpenAI from "openai";
@@ -38,16 +39,16 @@ async function chatWithCollection(sessionId, query, collectionName) {
   const relevantDocs = await retriever.invoke(query);
 
   const contextText = relevantDocs
-    .map(doc => `Source: ${doc.metadata?.source || "unknown"}\n${doc.pageContent}\n`)
+    .map(doc => `Source: ${doc.metadata?.source || "unknown"}\n${doc.pageContent}`)
     .join("\n\n");
 
   const previousMessages = conversationHistory[sessionId]?.messages || [];
 
   const SYSTEM_PROMPT = `
 You are an AI assistant. Answer using the provided context.
-Explain answer in a good and easy way.
-((Only for website URLs))Try stating topic name or section of the sorce for your reply.
-(Only for pdf files)Include sources if possible, page number, line, or topic. (Never mention the file name in your response.)
+Explain the answer clearly and simply.
+((Website URLs)) Mention topic/section if possible.
+((PDF files)) Include sources, page number, line, or topic. Do not mention the file name.
 Context: ${contextText}
 
 Previous conversation:
