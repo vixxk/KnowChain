@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { chatWeb, chatPdf, chatText } from "../api";
+import { Send, RefreshCw, Bot, User, Sparkles, Database } from "lucide-react";
 
 export default function ChatPanel() {
   const [sessionId, setSessionId] = useState(() => crypto.randomUUID());
@@ -71,52 +72,85 @@ export default function ChatPanel() {
   }
 
   return (
-    <div className="card chat-card">
-      <div className="card-header">
-        <div className="title">Chat</div>
-        <div className="session">
-          <span className="muted">Session:</span>
-          <code>{sessionId.slice(0, 8)}</code>
-          <button className="btn ghost" onClick={resetSession}>New</button>
+    <div className="chat-container">
+      <div className="chat-header">
+        <div className="chat-title">
+          <Bot className="chat-icon" />
+          <span>AI Assistant</span>
+          <div className="pulse-indicator" />
+        </div>
+        
+        <div className="session-info">
+          <span className="session-label">Session</span>
+          <div className="session-id">{sessionId.slice(0, 8)}</div>
+          <button className="reset-btn" onClick={resetSession}>
+            <RefreshCw size={16} />
+            New Chat
+          </button>
         </div>
       </div>
 
-      <div className="controls">
-        <label className="field">
-          <span>Collection</span>
-          <select value={collection} onChange={e => setCollection(e.target.value)}>
-            <option value="website_docs">website_docs</option>
-            <option value="pdf">pdf</option>
-            <option value="text">text</option>
-            <option value="custom">custom…</option>
-          </select>
-        </label>
+      <div className="collection-selector">
+        <Database size={16} />
+        <select value={collection} onChange={e => setCollection(e.target.value)} className="collection-dropdown">
+          <option value="website_docs">📄 Website Docs</option>
+          <option value="pdf">📋 PDF Documents</option>
+          <option value="text">📝 Text Content</option>
+          <option value="custom">⚙️ Custom Collection</option>
+        </select>
 
         {collection === "custom" && (
-          <label className="field">
-            <span>Name</span>
-            <input value={customCollection} onChange={e => setCustomCollection(e.target.value)} placeholder="my_collection"/>
-          </label>
+          <input 
+            value={customCollection} 
+            onChange={e => setCustomCollection(e.target.value)} 
+            placeholder="Enter collection name..."
+            className="custom-collection-input"
+          />
         )}
       </div>
 
-      <div className="messages">
+      <div className="messages-container">
+        {messages.length === 0 && (
+          <div className="welcome-message">
+            <Sparkles size={32} />
+            <h3>Welcome to KnowChain</h3>
+            <p>Ask me anything about your indexed documents and I'll help you find the answers!</p>
+          </div>
+        )}
+        
         {messages.map((m, i) => (
           <Message key={i} role={m.role} content={m.content} />
         ))}
+        
+        {loading && (
+          <div className="typing-indicator">
+            <div className="typing-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <span>AI is thinking...</span>
+          </div>
+        )}
+        
         <div ref={bottomRef} />
       </div>
 
-      <div className="composer">
+      <div className="input-container">
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKey}
-          placeholder="Ask a question…"
-          rows={2}
+          placeholder="Ask me anything about your documents..."
+          className="message-input"
+          rows={1}
         />
-        <button className="btn primary" onClick={send} disabled={loading}>
-          {loading ? "Thinking…" : "Send"}
+        <button 
+          className={`send-button ${loading ? 'loading' : ''}`} 
+          onClick={send} 
+          disabled={loading || !input.trim()}
+        >
+          <Send size={18} />
         </button>
       </div>
     </div>
@@ -125,8 +159,11 @@ export default function ChatPanel() {
 
 function Message({ role, content }) {
   return (
-    <div className={`msg ${role}`}>
-      <div className="bubble">
+    <div className={`message ${role}`}>
+      <div className="message-avatar">
+        {role === 'user' ? <User size={16} /> : <Bot size={16} />}
+      </div>
+      <div className="message-content">
         {content.split("\n").map((line, idx) => (
           <p key={idx}>{line}</p>
         ))}

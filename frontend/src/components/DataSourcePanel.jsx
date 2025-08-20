@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { indexPdf, indexText, indexWeb } from "../api";
+import { FileText, Globe, Upload, Loader, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function DataSourcePanel() {
   const [text, setText] = useState("");
@@ -8,32 +9,39 @@ export default function DataSourcePanel() {
   const [pdfCollection, setPdfCollection] = useState("pdf");
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+  const [noteType, setNoteType] = useState("info");
+
+  function showNote(message, type = "info") {
+    setNote(message);
+    setNoteType(type);
+    setTimeout(() => setNote(""), 5000);
+  }
 
   async function handleIndexText() {
-    if (!text.trim()) return setNote("Enter some text to index.");
-    setBusy(true); 
-    setNote("Indexing text… This may take some time for large inputs.");
+    if (!text.trim()) return showNote("Please enter some text to index.", "error");
+    setBusy(true);
+    showNote("Indexing text... This may take some time for large inputs.", "loading");
     try {
       const res = await indexText(text, textCollection || "text");
-      setNote(res.message || "Text indexed successfully.");
+      showNote(res.message || "Text indexed successfully!", "success");
       setText("");
     } catch (e) {
-      setNote(e?.response?.data?.error || e.message);
+      showNote(e?.response?.data?.error || e.message, "error");
     } finally {
       setBusy(false);
     }
   }
 
   async function handleIndexWeb() {
-    if (!webUrl.trim()) return setNote("Enter a URL.");
-    setBusy(true); 
-    setNote("Indexing website… This may take some time depending on content size.");
+    if (!webUrl.trim()) return showNote("Please enter a valid URL.", "error");
+    setBusy(true);
+    showNote("Indexing website... This may take some time depending on content size.", "loading");
     try {
       const res = await indexWeb(webUrl.trim());
-      setNote(res.message || "Website indexed successfully.");
+      showNote(res.message || "Website indexed successfully!", "success");
       setWebUrl("");
     } catch (e) {
-      setNote(e?.response?.data?.error || e.message);
+      showNote(e?.response?.data?.error || e.message, "error");
     } finally {
       setBusy(false);
     }
@@ -42,13 +50,13 @@ export default function DataSourcePanel() {
   async function handleIndexPdf(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setBusy(true); 
-    setNote("Indexing PDF… This may take some time for large documents.");
+    setBusy(true);
+    showNote("Indexing PDF... This may take some time for large documents.", "loading");
     try {
       const res = await indexPdf(file, pdfCollection || "pdf");
-      setNote(res.message || "PDF indexed successfully.");
+      showNote(res.message || "PDF indexed successfully!", "success");
     } catch (e2) {
-      setNote(e2?.response?.data?.error || e2.message);
+      showNote(e2?.response?.data?.error || e2.message, "error");
     } finally {
       e.target.value = "";
       setBusy(false);
@@ -56,50 +64,106 @@ export default function DataSourcePanel() {
   }
 
   return (
-    <div className="card data-card">
-      <div className="card-header">
-        <div className="title">Data Source</div>
+    <div className="data-source-container">
+      <div className="data-source-header">
+        <div className="header-title">
+          <Upload className="header-icon" />
+          <span>Data Sources</span>
+        </div>
+        <div className="header-subtitle">Index your content for AI-powered search</div>
       </div>
 
-      <div className="section">
-        <label className="field full">
-          <span>Text Area</span>
-          <textarea
-            value={text}
-            onChange={e => setText(e.target.value)}
-            rows={6}
-            placeholder="Paste text and index to 'text' collection (or custom)…"
+      <div className="source-section">
+        <div className="section-header">
+          <FileText size={18} />
+          <span>Text Content</span>
+        </div>
+        
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          className="text-input"
+          placeholder="Paste your text content here and index it for AI-powered search..."
+          rows={6}
+        />
+        
+        <div className="input-row">
+          <input 
+            value={textCollection} 
+            onChange={e => setTextCollection(e.target.value)} 
+            placeholder="Collection name (e.g., text, docs, articles)"
+            className="collection-input"
           />
-        </label>
-
-        <div className="row">
-          <input value={textCollection} onChange={e => setTextCollection(e.target.value)} placeholder="text"/>
-          <button className={`btn primary ${busy ? 'loading-btn' : ''}`} onClick={handleIndexText} disabled={busy}>
-            {busy ? "Indexing…" : "Submit"}
+          <button 
+            className={`action-button primary ${busy ? 'loading' : ''}`} 
+            onClick={handleIndexText} 
+            disabled={busy}
+          >
+            {busy ? <Loader className="spin" size={16} /> : <FileText size={16} />}
+            Index Text
           </button>
         </div>
       </div>
 
-      <div className="section">
-        <div className="row">
-          <input value={webUrl} onChange={e => setWebUrl(e.target.value)} placeholder="https://example.com/docs"/>
-          <button className={`btn ${busy ? 'loading-btn' : ''}`} onClick={handleIndexWeb} disabled={busy}>
-            {busy ? "Indexing…" : "Index Website"}
+      <div className="source-section">
+        <div className="section-header">
+          <Globe size={18} />
+          <span>Website</span>
+        </div>
+        
+        <div className="input-row">
+          <input 
+            value={webUrl} 
+            onChange={e => setWebUrl(e.target.value)} 
+            placeholder="https://example.com/docs"
+            className="url-input"
+          />
+          <button 
+            className={`action-button ${busy ? 'loading' : ''}`} 
+            onClick={handleIndexWeb} 
+            disabled={busy}
+          >
+            {busy ? <Loader className="spin" size={16} /> : <Globe size={16} />}
+            Index Website
           </button>
         </div>
       </div>
 
-      <div className="section">
-        <div className="row">
-          <input value={pdfCollection} onChange={e => setPdfCollection(e.target.value)} placeholder="pdf"/>
-          <label className="upload">
-            <input type="file" accept="application/pdf" onChange={handleIndexPdf} disabled={busy}/>
-            <span>{busy ? "Indexing…" : "Upload PDF"}</span>
+      <div className="source-section">
+        <div className="section-header">
+          <Upload size={18} />
+          <span>PDF Document</span>
+        </div>
+        
+        <div className="input-row">
+          <input 
+            value={pdfCollection} 
+            onChange={e => setPdfCollection(e.target.value)} 
+            placeholder="Collection name (e.g., pdf, manuals)"
+            className="collection-input"
+          />
+          
+          <label className="file-upload-button">
+            <input 
+              type="file" 
+              accept="application/pdf" 
+              onChange={handleIndexPdf} 
+              disabled={busy}
+            />
+            {busy ? <Loader className="spin" size={16} /> : <Upload size={16} />}
+            Upload PDF
           </label>
         </div>
       </div>
 
-      {note && <div className="note">{note}</div>}
+      {note && (
+        <div className={`notification ${noteType}`}>
+          {noteType === 'success' && <CheckCircle size={16} />}
+          {noteType === 'error' && <AlertCircle size={16} />}
+          {noteType === 'loading' && <Loader className="spin" size={16} />}
+          <span>{note}</span>
+        </div>
+      )}
     </div>
   );
 }
