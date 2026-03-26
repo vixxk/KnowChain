@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { OpenAIEmbeddings } from "@langchain/openai";
 
-const FIREWORKS_API_KEY = process.env.FIREWORKS_API_KEY;
+const getApiKey = () => process.env.FIREWORKS_API_KEY;
 const FW_BASE_URL = "https://api.fireworks.ai/inference/v1";
 const CHAT_MODEL = "accounts/fireworks/models/mixtral-8x22b-instruct";
 const EMBED_MODEL = "nomic-ai/nomic-embed-text-v1.5";
@@ -25,7 +25,7 @@ export async function executeWithRetry(fn, maxRetries = 3, initialDelay = 2000) 
 }
 
 export async function rewriteQuery(originalQuery) {
-  const fwClient = new OpenAI({ apiKey: FIREWORKS_API_KEY, baseURL: FW_BASE_URL });
+  const fwClient = new OpenAI({ apiKey: getApiKey(), baseURL: FW_BASE_URL });
   try {
     const response = await fwClient.chat.completions.create({
       model: CHAT_MODEL,
@@ -46,9 +46,9 @@ export async function rewriteQuery(originalQuery) {
 
 export const getEmbeddings = () => new OpenAIEmbeddings({
   model: EMBED_MODEL,
-  apiKey: FIREWORKS_API_KEY,
+  apiKey: getApiKey(),
   configuration: { baseURL: FW_BASE_URL },
 });
 
-export const getFwClient = () => new OpenAI({ apiKey: FIREWORKS_API_KEY, baseURL: FW_BASE_URL });
+export const getFwClient = () => new OpenAI({ apiKey: getApiKey(), baseURL: FW_BASE_URL });
 export const CHAT_MODEL_NAME = CHAT_MODEL;

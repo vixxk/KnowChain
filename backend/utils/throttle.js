@@ -3,9 +3,10 @@ dotenv.config({ path: "./.env" });
 
 let lastRequestTime = 0;
 let isLocked = false;
-const REQUEST_DELAY = parseInt(process.env.REQUEST_DELAY_MS) || 5000;
+const getRequestDelay = () => parseInt(process.env.REQUEST_DELAY_MS) || 5000;
 
 export async function throttleRequest() {
+  const REQUEST_DELAY = getRequestDelay();
   // Wait if another request is currently throttling
   while (isLocked) {
     await new Promise(resolve => setTimeout(resolve, 100));

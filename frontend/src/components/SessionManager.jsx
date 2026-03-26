@@ -3,7 +3,8 @@ import { HiOutlineDatabase, HiOutlineGlobeAlt, HiOutlineCube, HiX, HiOutlineDocu
 
 export default function SessionManager({ sessions, setSessions, activeSessionId, setActiveSessionId, updateActiveSession, cleanupSessionOnServer }) {
     const currentSession = sessions[activeSessionId] || { documents: [], selectedCollections: [] };
-    const { documents, selectedCollections, id: sessionId } = currentSession;
+    const { documents, selectedCollections } = currentSession;
+    const sessionId = activeSessionId;
 
     const addDocument = (doc) => {
         updateActiveSession(curr => ({
