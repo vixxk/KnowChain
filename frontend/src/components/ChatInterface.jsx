@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import WelcomeHub from './chat/WelcomeHub';
 import MessageList from './chat/MessageList';
 import ChatInput from './chat/ChatInput';
+import API_BASE_URL from '../api/config';
 
 export default function ChatInterface({ sessionId, selectedCollections, messages, setMessages }) {
   const [input, setInput] = useState('');
@@ -15,7 +16,7 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
     if (!input.trim() || isRewriting || isLoading) return;
     setIsRewriting(true);
     try {
-      const res = await fetch('http://localhost:5000/chat/rewrite', {
+      const res = await fetch(`${API_BASE_URL}/chat/rewrite`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: input }),
       });
@@ -42,7 +43,7 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
     setMessages(prev => [...prev, userMsg]);
     const q = input; setInput(''); setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/chat/query', {
+      const res = await fetch(`${API_BASE_URL}/chat/query`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: q, collectionNames: selectedCollections, rewrite: false, history: currentHistory }),
       });

@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { HiCloudUpload, HiLink, HiCheckCircle, HiXCircle } from 'react-icons/hi';
 import axios from 'axios';
+import API_BASE_URL from '../api/config';
 
 export default function DocumentUpload({ sessionId, onDocumentAdded }) {
     const [isUploading, setIsUploading] = useState(false);
@@ -15,7 +16,7 @@ export default function DocumentUpload({ sessionId, onDocumentAdded }) {
         setIsUploading(true); setUploadStatus(null);
         const formData = new FormData(); formData.append('file', file); formData.append('sessionId', sessionId);
         try {
-            const res = await axios.post('http://localhost:5000/chat/index/pdf', formData);
+            const res = await axios.post(`${API_BASE_URL}/chat/index/pdf`, formData);
             onDocumentAdded({ name: file.name, type: 'pdf', size: (file.size / 1024 / 1024).toFixed(2) + ' MB', collection: res.data.collectionName });
             setUploadStatus({ type: 'success', message: 'Synced.' }); setTimeout(() => setUploadStatus(null), 3000);
         } catch (e) { setUploadStatus({ type: 'error', message: e.response?.data?.error || 'Failed.' }); }
@@ -26,7 +27,7 @@ export default function DocumentUpload({ sessionId, onDocumentAdded }) {
         e.preventDefault(); if (!urlInput.trim() || isUploading) return;
         setIsUploading(true); setUploadStatus(null);
         try {
-            const res = await axios.post('http://localhost:5000/chat/index/web', { url: urlInput, sessionId });
+            const res = await axios.post(`${API_BASE_URL}/chat/index/web`, { url: urlInput, sessionId });
             onDocumentAdded({ name: new URL(urlInput).hostname, type: 'web', collection: res.data.collectionName });
             setUrlInput(''); setUploadStatus({ type: 'success', message: 'Linked.' }); setTimeout(() => setUploadStatus(null), 3000);
         } catch (e) { setUploadStatus({ type: 'error', message: e.response?.data?.error || 'Failed.' }); }
@@ -37,7 +38,7 @@ export default function DocumentUpload({ sessionId, onDocumentAdded }) {
         e.preventDefault(); if (!textInput.trim() || isUploading) return;
         setIsUploading(true); setUploadStatus(null);
         try {
-            const res = await axios.post('http://localhost:5000/chat/index/text', { text: textInput, sessionId });
+            const res = await axios.post(`${API_BASE_URL}/chat/index/text`, { text: textInput, sessionId });
             onDocumentAdded({ name: 'Snippet ' + new Date().toLocaleTimeString(), type: 'text', collection: res.data.collectionName });
             setTextInput(''); setUploadStatus({ type: 'success', message: 'Ingested.' }); setTimeout(() => setUploadStatus(null), 3000);
         } catch (e) { setUploadStatus({ type: 'error', message: e.response?.data?.error || 'Failed.' }); }

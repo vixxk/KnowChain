@@ -4,6 +4,7 @@ import ChatInterface from './components/ChatInterface';
 import { HiPlus, HiOutlineCollection, HiX, HiChatAlt2 } from 'react-icons/hi';
 import { FiClock } from 'react-icons/fi';
 import './App.css';
+import API_BASE_URL from './api/config';
 
 function App() {
 	const [sessions, setSessions] = useState(() => {
@@ -26,7 +27,7 @@ function App() {
 	useEffect(() => { localStorage.setItem('knowchain_v2_sessions', JSON.stringify(sessions)); }, [sessions]);
 
 	const cleanupSessionOnServer = async (id) => {
-		try { await fetch(`http://localhost:5000/chat/cleanup/${id}`, { method: 'POST' }); } catch (e) {}
+		try { await fetch(`${API_BASE_URL}/chat/cleanup/${id}`, { method: 'POST' }); } catch (e) {}
 	};
 
 	const handleDeleteSession = (id) => {
@@ -50,7 +51,7 @@ function App() {
 	const startNewSession = async () => {
 		setIsLoading(true); setAppStatus('loading');
 		try {
-			const res = await fetch('http://localhost:5000/chat/start-session', { method: 'POST' });
+			const res = await fetch(`${API_BASE_URL}/chat/start-session`, { method: 'POST' });
 			const data = await res.json();
 			const newId = data.sessionId;
 			setSessions(prev => ({
