@@ -27,7 +27,7 @@
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "multer": "^2.0.2",
-    "openai": "^4.111.0",
+    "openai": "^4.104.0",
     "pdf-parse": "^1.1.1",
     "swagger-ui-express": "^5.0.1"
   }
