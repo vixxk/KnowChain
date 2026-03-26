@@ -30,7 +30,7 @@ export async function rewriteQuery(originalQuery) {
     const response = await fwClient.chat.completions.create({
       model: CHAT_MODEL,
       messages: [
-        { role: "system", content: "Rewrite the query for vector search. Output ONLY rewritten text." },
+        { role: "system", content: "You are a prompt enhancer. Descriptive and effective for AI search while strictly maintaining the user's original intent. Output ONLY the enhanced query text." },
         { role: "user", content: originalQuery }
       ],
       temperature: 0.1, max_tokens: 150,

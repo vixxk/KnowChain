@@ -38,10 +38,8 @@ router.post("/index/pdf", upload.single("file"), async (req, res) => {
     if (!req.file || !req.body.sessionId) return res.status(400).json({ error: "Missing file or session" });
     const collectionName = generateCollectionName(req.body.sessionId, "pdf");
     await pdfIndexer(req.file.path, collectionName);
-    fs.unlink(req.file.path, () => {});
     res.json({ message: "Indexed", collectionName });
   } catch (error) {
-    if (req.file) fs.unlink(req.file.path, () => {});
     res.status(500).json({ error: error.message });
   }
 });

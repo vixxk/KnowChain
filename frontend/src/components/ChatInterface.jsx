@@ -4,7 +4,7 @@ import MessageList from './chat/MessageList';
 import ChatInput from './chat/ChatInput';
 import API_BASE_URL from '../api/config';
 
-export default function ChatInterface({ sessionId, selectedCollections, messages, setMessages }) {
+export default function ChatInterface({ sessionId, selectedCollections, messages, setMessages, onScroll }) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
@@ -68,7 +68,10 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto px-4 lg:px-12 py-6 scrollbar-hide">
+      <div 
+        onScroll={onScroll}
+        className="flex-1 overflow-y-auto px-4 lg:px-12 py-6 pb-48 lg:pb-32 scrollbar-hide"
+      >
         <div className="max-w-3xl mx-auto h-full flex flex-col pt-4 lg:pt-0">
           {messages.length === 0 ? <WelcomeHub /> : <MessageList messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} />}
         </div>

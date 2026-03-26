@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { HiOutlineUserCircle, HiCheck, HiOutlineDuplicate, HiExternalLink } from 'react-icons/hi';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import API_BASE_URL from '../api/config';
 
 export default function MessageBubble({ message }) {
     const isAi = message.sender === 'ai';
@@ -23,7 +24,7 @@ export default function MessageBubble({ message }) {
                 <div className="flex-1 max-w-[85%] space-y-1.5">
                     <div className="flex items-center justify-between gap-2 flex-wrap min-h-[24px]">
                         <div className="flex items-center gap-2">
-                            {message.sourceCount && (
+                            {message.sourceCount && message.text.includes('![') && (
                                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#38B28E]/10 border border-[#38B28E]/20 rounded-md text-[10px] font-bold text-[#38B28E] uppercase tracking-wider">
                                     {message.sourceCount} {message.sourceCount === 1 ? 'Source' : 'Sources'}
                                 </span>
@@ -68,7 +69,10 @@ export default function MessageBubble({ message }) {
                                                             if (/^\[Source\s*\d+\]$/i.test(part)) {
                                                                 const num = parseInt(part.match(/\d+/)?.[0]);
                                                                 const src = sources.find(s => s.id === num);
-                                                                const href = src?.source || null;
+                                                                let href = src?.source || null;
+                                                                if (href && href.startsWith('uploads/')) {
+                                                                    href = `${API_BASE_URL}/${href}`;
+                                                                }
                                                                 if (href) {
                                                                     return <a key={`${i}-${j}`} href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 border border-[#D4AF37]/30 rounded text-[10px] font-bold text-[#D4AF37] no-underline transition-all cursor-pointer"><HiExternalLink className="text-[9px]" />{part}</a>;
                                                                 }
@@ -86,6 +90,12 @@ export default function MessageBubble({ message }) {
                                     // Custom citation style [1]
                                     a: ({node, ...rest}) => {
                                         const { children, ...validProps } = rest;
+                                        const hasImage = Array.isArray(children) ? children.some(c => typeof c !== 'string' && (c?.type?.name === 'img' || c?.props?.src)) : (children?.type?.name === 'img');
+                                        
+                                        if (hasImage) {
+                                            return <a {...validProps} className="block hover:opacity-90 transition-opacity">{children}</a>;
+                                        }
+
                                         return (
                                             <a {...validProps} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 -mx-0.5 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 border border-[#D4AF37]/30 rounded text-[10px] font-bold text-[#D4AF37] no-underline transition-all">
                                                 {children}
@@ -151,14 +161,14 @@ export default function MessageBubble({ message }) {
                         </div>
                     </div>
                     {/* Sources Reference Panel - Only visible if cited in text or has images */}
-                    {message.sources && message.sources.length > 0 && (/\[Source\s*\d+\]/i.test(message.text) || message.text.includes('![')) && (
+                    {message.sources && message.sources.length > 0 && message.text.includes('![') && (
                         <div id={`source-ref-${message.id}`} className="mt-2 bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 space-y-2">
                             <span className="text-[9px] font-bold text-[#8A94A6] uppercase tracking-widest">References</span>
                             {[...new Map(message.sources.map(s => [s.id, s])).values()].map(src => (
                                 <div key={src.id} className="flex items-start gap-2">
                                     <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded text-[9px] font-bold text-[#D4AF37]">{src.id}</span>
                                     {src.source ? (
-                                        <a href={src.source} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#38B28E] hover:text-[#4DD4A8] truncate transition-colors flex items-center gap-1">
+                                        <a href={src.source.startsWith('http') ? src.source : `${API_BASE_URL}/${src.source}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#38B28E] hover:text-[#4DD4A8] truncate transition-colors flex items-center gap-1">
                                             <HiExternalLink className="text-[10px] shrink-0" />
                                             {src.source.length > 60 ? src.source.substring(0, 60) + '...' : src.source}
                                         </a>

@@ -34,7 +34,11 @@ export async function unifiedChatController(req, res) {
     const allDocsArrays = await Promise.all(collections.map(col => retrieveFromCollection(col, currentQuery, embeddings)));
     const allDocs = allDocsArrays.flat();
 
-    const contextText = allDocs.map((doc, i) => `--- Section ${i + 1} ---\n${doc.pageContent}`).join("\n\n");
+    const contextText = allDocs.map((doc, i) => {
+      const url = doc.metadata?.source || doc.metadata?.url || 'Unknown';
+      return `--- SOURCE_URL: ${url} ---\n${doc.pageContent}`;
+    }).join("\n\n");
+
     const uniqueSources = [];
     const seenUrls = new Set();
     
@@ -60,10 +64,11 @@ export async function unifiedChatController(req, res) {
     const SYSTEM_PROMPT = `You are KnowChain AI v2.0, a professional intelligence assistant.
 
 COGNITIVE FORMATTING:
-1. **Citations**: ONLY use [Source X] when including an image OR providing training data NOT found in context.
-2. **Images**: Use ![Description](https://picsum.photos/seed/<keyword>/800/400). Replace <keyword> with relevant word.
-3. **Sections**: Use ### STEP HEADERS for distinct phases.
+1. **Citations**: ONLY use [Source X] when you are including an image. 
+2. **Images**: ONLY provide images if explicitly requested. Use [![Description](https://picsum.photos/seed/<keyword>/800/400)](<SOURCE_URL>). Replace <keyword> with relevant word and <SOURCE_URL> with the exact URL from the context section.
+3. **References**: At the very end of your response, list all sources used for images as: [Source X]: SOURCE_URL.
 4. **Highlights**: Use **bold** for key answers.
+5. **Sections**: Use ### HEADERS for phases.
 
 DOCUMENT CONTENT:
 ${contextText}`;
