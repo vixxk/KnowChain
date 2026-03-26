@@ -18,7 +18,7 @@ async function crawlSite(url, baseDomain) {
     const $ = cheerio.load(res.data);
 
     const links = [];
-    $("a").each((_, a) => {
+    $("a").each((_, a) => { // This is Cheerio selector syntax _ is index , a is the DOM element
       const href = $(a).attr("href");
       if (!href) return;
 
@@ -82,4 +82,4 @@ async function webWorker(url) {
   console.log("🎉 Website indexing done!");
 }
 
-webWorker("https://docs.docker.com/get-started");
+// webWorker("https://docs.docker.com/get-started");

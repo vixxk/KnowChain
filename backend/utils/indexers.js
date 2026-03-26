@@ -5,154 +5,193 @@ import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { QdrantVectorStore } from "@langchain/qdrant";
+import dotenv from "dotenv";
+import { throttleRequest, forceBackoff } from "./throttle.js";
+console.log("🛠️ Indexers module loaded [VERSION 2.0]");
 
-const visited = new Set();
+const FIREWORKS_API_KEY = process.env.FIREWORKS_API_KEY;
+const FW_BASE_URL = "https://api.fireworks.ai/inference/v1";
+const EMBED_MODEL = "nomic-ai/nomic-embed-text-v1.5";
 
-function chunkArray(array, size) {
-  const result = [];
-  for (let i = 0; i < array.length; i += size) {
-    result.push(array.slice(i, i + size));
-  }
-  return result;
-}
-
-// Retryable fetch for web crawling
-async function fetchWithRetry(url, retries = 3, delay = 2000) {
-  for (let i = 0; i < retries; i++) {
+async function executeWithRetry(fn, maxRetries = 3, initialDelay = 5000) {
+  let attempt = 0;
+  while (attempt < maxRetries) {
     try {
-      return await axios.get(url, {
-        timeout: 15000,
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; KnowChainBot/1.0)" },
-      });
-    } catch (err) {
-      if (i === retries - 1) throw err;
-      console.log(`Retrying ${url} (${i + 1})...`);
-      await new Promise(r => setTimeout(r, delay));
+      return await fn();
+    } catch (error) {
+      attempt++;
+      if (error.status === 429 && attempt < maxRetries) {
+        const delay = initialDelay * Math.pow(2, attempt - 1);
+        console.warn(`🚨 Rate limit hit. Backing off for ${delay}ms...`);
+        forceBackoff(delay);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
     }
   }
 }
 
-export async function webIndexer(url) {
-  const baseDomain = new URL(url).origin;
-  if (visited.has(url)) return;
-  visited.add(url);
-
-  let urlsToCrawl = [url];
-
-  try {
-    const res = await fetchWithRetry(url);
-    const $ = load(res.data);
-
-    $("a").each((_, a) => {
-      const href = $(a).attr("href");
-      if (!href) return;
-      let absoluteUrl = href.startsWith("http") ? href : new URL(href, url).href;
-      if (
-        absoluteUrl.startsWith(baseDomain) &&
-        !visited.has(absoluteUrl) &&
-        !absoluteUrl.endsWith(".pdf") &&
-        !absoluteUrl.endsWith(".jpg") &&
-        !absoluteUrl.endsWith(".png")
-      ) {
-        urlsToCrawl.push(absoluteUrl);
-        visited.add(absoluteUrl);
-      }
-    });
-  } catch (err) {
-    console.log(`⚠️ Failed to crawl ${url}: ${err.message}`);
-  }
-
-  const loaderPromises = urlsToCrawl.map(async pageUrl => {
-    const loader = new CheerioWebBaseLoader(pageUrl);
-    return loader.load();
-  });
-
-  const rawDocsArray = await Promise.all(loaderPromises);
-  const rawDocs = rawDocsArray.flat();
-
-  const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 });
-  const docs = [];
-  for (const doc of rawDocs) {
-    const chunks = await splitter.splitText(doc.pageContent || "");
-    chunks.forEach(chunk => docs.push({ pageContent: chunk }));
-  }
-
-  const embeddings = new OpenAIEmbeddings({
-    model: "text-embedding-004",
-    apiKey: process.env.GEMINI_API_KEY,
-    configuration: { baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/" },
-  });
-
-  const batches = chunkArray(docs, 100);
-  for (const batch of batches) {
-    await QdrantVectorStore.fromDocuments(batch, embeddings, {
-      url: process.env.QDRANT_URL,
-      collectionName: "website_docs",
-    });
-  }
-
-  console.log("🌐 Web indexing done!");
+function chunkArray(array, size) {
+  const result = [];
+  for (let i = 0; i < array.length; i += size) result.push(array.slice(i, i + size));
+  return result;
 }
 
-export async function pdfIndexer(pdfFilePath, collectionName = "pdf") {
-  const loader = new PDFLoader(pdfFilePath);
+const getEmbeddings = () => new OpenAIEmbeddings({
+    model: EMBED_MODEL,
+    apiKey: FIREWORKS_API_KEY,
+    configuration: { baseURL: FW_BASE_URL },
+});
+
+async function runIncrementalIndexing(batches, embeddings, collectionName) {
+  let vectorStore;
+  for (let i = 0; i < batches.length; i++) {
+    await throttleRequest();
+    console.log(`📤 Indexing batch ${i + 1}/${batches.length}...`);
+    
+    await executeWithRetry(async () => {
+      if (i === 0) {
+        vectorStore = await QdrantVectorStore.fromDocuments(batches[i], embeddings, {
+          url: process.env.QDRANT_URL,
+          collectionName,
+          apiKey: process.env.QDRANT_API_KEY,
+          clientConfig: { checkCompatibility: false },
+        });
+      } else {
+        await vectorStore.addDocuments(batches[i]);
+      }
+    });
+  }
+}
+
+export async function webIndexer(url, collectionName) {
+  console.log(`🌐 [WebIndex] Scraping: ${url}`);
+  const response = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' }});
+  const $ = load(response.data);
+  
+  // Clean up noisy elements to focus on actual content
+  $('nav, footer, aside, header, script, style, .sidebar, .menu').remove();
+  
+  // Try to find main content or fallback to body
+  const contentElement = $('article, main, #content, .content, .markdown').first().length > 0 
+    ? $('article, main, #content, .content, .markdown').first() 
+    : $('body');
+  
+  const rawText = contentElement.text().replace(/\n+/g, '\n').replace(/\s{2,}/g, ' ').trim();
+
+  if (!rawText || rawText.length < 50) throw new Error("No significant content extracted from website. Bot protection might be active.");
+
+  const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 600, chunkOverlap: 120 });
+  const chunks = await splitter.splitText(rawText);
+  const docs = chunks.map(chunk => ({ 
+    pageContent: `search_document: ${chunk}`,
+    metadata: { source: url }
+  }));
+
+  console.log(`📦 Web extracted ${rawText.length} chars, created ${docs.length} chunks.`);
+  const embeddings = getEmbeddings();
+  const batches = chunkArray(docs, parseInt(process.env.BATCH_SIZE) || 100);
+  await runIncrementalIndexing(batches, embeddings, collectionName);
+  console.log(`✅ Website indexed successfully!`);
+}
+
+export async function pdfIndexer(pdfFilePath, collectionName) {
+  console.log(`📄 Starting PDF extraction for: ${pdfFilePath}`);
+  const loader = new PDFLoader(pdfFilePath, { splitPages: false });
   const rawDocs = await loader.load();
 
   const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 });
   const docs = [];
   for (const doc of rawDocs) {
     const chunks = await splitter.splitText(doc.pageContent || "");
-    chunks.forEach(chunk => docs.push({ pageContent: chunk }));
+    chunks.forEach(chunk => docs.push({ 
+      pageContent: `search_document: ${chunk}`,
+      metadata: { source: doc.metadata?.source || "unknown" }
+    }));
   }
 
-  const embeddings = new OpenAIEmbeddings({
-    model: "text-embedding-004",
-    apiKey: process.env.GEMINI_API_KEY,
-    configuration: { baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/" },
-  });
-
-  const batches = chunkArray(docs, 100);
-  for (const batch of batches) {
-    await QdrantVectorStore.fromDocuments(batch, embeddings, {
-      url: process.env.QDRANT_URL,
-      collectionName,
-    });
-  }
-
-  console.log("📄 PDF indexing done!");
+  const embeddings = getEmbeddings();
+  const batches = chunkArray(docs, parseInt(process.env.BATCH_SIZE) || 100);
+  console.log(`📦 Processing ${batches.length} batches...`);
+  await runIncrementalIndexing(batches, embeddings, collectionName);
+  console.log(`✅ PDF indexed successfully!`);
 }
 
-export const textIndexer = async (textContent, collectionName = "text") => {
+export async function textIndexer(textContent, collectionName) {
+  const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 });
+  const chunks = await splitter.splitText(textContent);
+  const docs = chunks.map(chunk => ({ 
+    pageContent: `search_document: ${chunk}`,
+    metadata: { source: "user-uploaded" }
+  }));
+
+  const embeddings = getEmbeddings();
+  const batches = chunkArray(docs, parseInt(process.env.BATCH_SIZE) || 100);
+  console.log(`📦 Processing ${batches.length} batches...`);
+  await runIncrementalIndexing(batches, embeddings, collectionName);
+  console.log(`✅ Text indexed successfully!`);
+}
+
+export async function deleteCollection(sessionId, chatType) {
+  const collectionName = `${sessionId}_${chatType}`.replace(/[^a-zA-Z0-9_-]/g, "_");
   try {
-    console.log(`📝 Starting text indexing for collection: ${collectionName}`);
-
-    const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 1000,
-      chunkOverlap: 200,
+    await fetch(`${process.env.QDRANT_URL}/collections/${collectionName}`, {
+      method: "DELETE",
+      headers: { "api-key": process.env.QDRANT_API_KEY },
     });
+    console.log(`🗑️ Collection ${collectionName} deleted`);
+  } catch (error) {
+    console.error(`Error deleting collection ${collectionName}:`, error.message);
+  }
+}
 
-    const chunks = await splitter.splitText(textContent);
-    const docs = chunks.map(chunk => ({ pageContent: chunk }));
+/**
+ * Delete ALL Qdrant collections that match a session prefix.
+ * Handles timestamped collection names like: session_xxx_pdf_1711440000
+ */
+export async function deleteSessionCollections(sessionId) {
+  if (!sessionId) return { deleted: 0 };
 
-    console.log(`📊 Split text into ${docs.length} chunks`);
-
-    const embeddings = new OpenAIEmbeddings({
-      model: "text-embedding-004",
-      apiKey: process.env.GEMINI_API_KEY,
-      configuration: { baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/" },
+  const sanitizedPrefix = sessionId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  
+  try {
+    // List all collections from Qdrant
+    const listRes = await fetch(`${process.env.QDRANT_URL}/collections`, {
+      headers: { "api-key": process.env.QDRANT_API_KEY },
     });
+    const listData = await listRes.json();
+    const allCollections = listData?.result?.collections || [];
 
-    const batches = chunkArray(docs, 100);
-    for (const batch of batches) {
-      await QdrantVectorStore.fromDocuments(batch, embeddings, {
-        url: process.env.QDRANT_URL,
-        collectionName,
-      });
+    // Filter collections belonging to this session
+    const toDelete = allCollections
+      .map(c => c.name)
+      .filter(name => name.startsWith(sanitizedPrefix));
+
+    if (toDelete.length === 0) {
+      console.log(`🧹 [Cleanup] No collections found for session: ${sessionId}`);
+      return { deleted: 0 };
     }
 
-    console.log(`✅ Text indexing completed for collection: ${collectionName}`);
-  } catch (err) {
-    console.error("❌ Text indexing failed:", err);
-    throw err;
+    console.log(`🧹 [Cleanup] Deleting ${toDelete.length} collection(s) for session ${sessionId.substring(0, 20)}...`);
+
+    // Delete each matching collection
+    for (const name of toDelete) {
+      try {
+        await fetch(`${process.env.QDRANT_URL}/collections/${name}`, {
+          method: "DELETE",
+          headers: { "api-key": process.env.QDRANT_API_KEY },
+        });
+        console.log(`  🗑️ Deleted: ${name}`);
+      } catch (err) {
+        console.error(`  ⚠️ Failed to delete ${name}: ${err.message}`);
+      }
+    }
+
+    return { deleted: toDelete.length, collections: toDelete };
+  } catch (error) {
+    console.error(`🧹 [Cleanup] Error listing collections: ${error.message}`);
+    return { deleted: 0, error: error.message };
   }
-};
+}
+

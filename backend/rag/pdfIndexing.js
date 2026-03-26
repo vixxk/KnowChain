@@ -21,11 +21,11 @@ async function pdfWorker() {
 
   const splitter = new RecursiveCharacterTextSplitter({
     chunkSize: 1000,    
-    chunkOverlap: 200,  
+    chunkOverlap: 200,  //last 200 to preserve context for the next time
   });
 
   const docs = await splitter.splitDocuments(rawDocs);
-  console.log(`🔹 PDF split into ${docs.length} chunks`);
+  console.log(`PDF split into ${docs.length} chunks`);
 
   const embeddings = new OpenAIEmbeddings({
     model: "text-embedding-004",
@@ -52,4 +52,4 @@ async function pdfWorker() {
   console.log("🎉 All indexing done!");
 }
 
-pdfWorker();
+// pdfWorker();

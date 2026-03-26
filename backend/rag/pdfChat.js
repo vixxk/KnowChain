@@ -21,6 +21,7 @@ async function pdfChat(params) {
     {
       url: process.env.QDRANT_URL,
       collectionName: "pdf",
+      checkCompatibility: false,
     }
   );
 
@@ -60,5 +61,3 @@ async function pdfChat(params) {
 
   console.log(response.choices[0].message.content);
 }
-
-pdfChat();

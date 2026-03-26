@@ -18,6 +18,7 @@ async function webChat(query) {
     {
       url: process.env.QDRANT_URL,
       collectionName: "website_docs",
+      checkCompatibility: false,
     }
   );
 
@@ -60,4 +61,4 @@ async function webChat(query) {
   console.log("🤖 Answer:", response.choices[0].message.content);
 }
 
-webChat("How do I install Docker on Linux?");
+// webChat("How do I install Docker on Linux?");

@@ -1,138 +1,55 @@
-# KnowChain - RAG Playground
+# KnowChain AI v2.0 - Intelligence Workspace
 
-KnowChain is a **Retrieval-Augmented Generation (RAG)** playground where you can index PDFs, websites, or plain text and chat with the indexed content. Built with **React.js frontend** and **Node.js/Express backend**, it uses LangChain-based pipelines for vector storage and querying.
+KnowChain is a high-fidelity, private RAG (Retrieval-Augmented Generation) application designed for high-performance intelligence analysis. It allows users to "sync" websites, PDFs, and text snippets into a **Neural Feed**, creating a private knowledge layer for local interaction.
 
----
+## 🚀 Key Features
 
-## Features
+- **Neural Feed (RAG)**: Multi-source retrieval engine that allows querying across multiple websites and documents simultaneously.
+- **Smart Web Scraping**: Advanced content extraction that filters out navigation, footers, and sidebars to focus on relevant text.
+- **Neural Rewrite/Enhance**: Automatic prompt optimization using AI to improve search relevance before querying.
+- **Architectural Visualization**: Automatic image generation for complex concepts using smart visual anchors.
+- **Dual-Session Management**: Maintains multiple chat contexts with independent knowledge units.
+- **Privacy First**: All active session data is stored in **local storage**, ensuring zero server-side state for user history.
+- **Mobile Responsive**: Floating bottom navigation and optimized hub for desktop-to-mobile parity.
 
-- Upload and index **PDFs**, **text**, and **website URLs**.
-- Chat with your indexed data using a **retrieval-augmented LLM**.
-- Supports live indexing with progress indicators.
-- Fixed-size chat panel with scrollable messages.
-- PDF uploads and text inputs are fully styled with proper buttons.
-- Notes shown for indexing duration for large documents.
-- Backend RAG pipeline located in `backend/rag`.
-- Gemini model supports only **100 chunks**, so automatic division of data is handled.
+## 🛠️ Technical Stack
 
----
+- **Large Language Model (LLM)**: `Mixtral-8x22B-Instruct` via Fireworks AI.
+- **Embedding Model**: `nomic-embed-text-v1.5` for high-precision vectorization.
+- **Vector Database**: `Qdrant` (High-performance vector storage and retrieval).
+- **Web Scraping**: `Cheerio` + `Axios` with custom content extraction rules.
+- **Frontend**: `React` + `Tailwind CSS` for a premium, glass-morphism aesthetic.
+- **Backend**: `Node.js` + `Express` with partitioned RAG workflows.
 
-## Project Structure
+## ⚙️ Configuration
 
-```
-KnowChain/
-│
-├─ backend/
-│  ├─ controllers/
-│  │  └─ chatController.js
-│  ├─ rag/ # RAG related logic
-│  ├─ routes/
-│  ├─ uploads/
-│  ├─ utils/
-│  │  └─ indexers.js # PDF, text, web indexing
-│  ├─ .env
-│  ├─ server.js
-│  └─ package.json
-│
-├─ frontend/
-│  ├─ public/
-│  ├─ src/
-│  │  ├─ assets/
-│  │  ├─ components/
-│  │  │  ├─ ChatPanel.jsx
-│  │  │  └─ DataSourcePanel.jsx
-│  │  ├─ api.js # frontend API calls
-│  │  ├─ App.jsx
-│  │  ├─ App.css
-│  │  ├─ index.css
-│  │  └─ main.jsx
-│  ├─ .env
-│  └─ package.json
-│
-└─ .gitignore
-```
-
----
-
-## Installation
-
-### Backend
-
-```bash
-cd backend
-npm install
-```
-
-Create a `.env` file in backend:
+Create a `.env` file in the `backend` directory with the following:
 
 ```env
+FIREWORKS_API_KEY=your_fireworks_api_key
+QDRANT_URL=your_qdrant_url
+QDRANT_API_KEY=your_qdrant_api_key
 PORT=5000
-GEMINI_API_KEY=your_gemini_key
 ```
 
-Start the backend:
+## 📦 Installation
 
-```bash
-node server.js
-```
+1. **Frontend**:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
-### Frontend
+2. **Backend**:
+   ```bash
+   cd backend
+   npm install
+   npm start
+   ```
 
-```bash
-cd frontend
-npm install
-```
+## 🔒 Security & Privacy
 
-Create a `.env` in frontend:
-
-```env
-VITE_API_URL=http://localhost:5000
-```
-
-Start the frontend:
-
-```bash
-npm run dev
-```
-
----
-
-## Usage
-
-Open the frontend in your browser (http://localhost:5173 by default).
-
-In the **Data Source Panel**, you can:
-
-- Paste text to index.
-- Enter a website URL to index.
-- Upload a PDF file.
-- Click the Submit / Index Website / Upload PDF buttons.
-
-> Note: Large documents may take time to index.
-
-Use the **Chat Panel** to ask questions about your indexed data.
-
----
-
-## Notes
-
-- If you want to check just the RAG part, explore the `backend/rag` folder.
-- Gemini model only accepts 100 chunks per request, so the project automatically splits content into smaller chunks for processing.
-
----
-
-## Dependencies
-
-**Backend:**
-
-- Express
-- Multer (for file uploads)
-- OpenAI SDK
-- LangChain
-- Other packages mentioned in `package.json`
-
-**Frontend:**
-
-- React.js
-- Vite
-- Axios for API calls
+KnowChain is built to be secure by design:
+- **Zero-Storage Logic**: The backend generates temporary session IDs but stores no chat history. All conversation logs and UI states are maintained in the user's **Local Storage**.
+- **Ephemeral Context**: Session-specific knowledge units (Qdrant collections) are automatically cleaned up when the session is closed from the UI.
