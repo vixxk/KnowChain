@@ -1,0 +1,19 @@
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local environment variables
+.env
+
+# Evaluation outputs and reports
+*.pdf
+*.json
+evaluation_results.json
+KnowChain_RAG_Evaluation_Report.pdf

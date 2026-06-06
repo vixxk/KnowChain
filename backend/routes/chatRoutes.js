@@ -23,10 +23,10 @@ router.post("/text", unifiedChatController);
 
 router.post("/index/web", async (req, res) => {
   try {
-    const { url, sessionId } = req.body;
+    const { url, sessionId, qdrantUrl } = req.body;
     if (!url || !sessionId) return res.status(400).json({ error: "Missing parameters" });
     const collectionName = generateCollectionName(sessionId, "website");
-    await webIndexer(url, collectionName);
+    await webIndexer(url, collectionName, qdrantUrl);
     res.json({ message: "Indexed", collectionName });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -35,9 +35,10 @@ router.post("/index/web", async (req, res) => {
 
 router.post("/index/pdf", upload.single("file"), async (req, res) => {
   try {
-    if (!req.file || !req.body.sessionId) return res.status(400).json({ error: "Missing file or session" });
-    const collectionName = generateCollectionName(req.body.sessionId, "pdf");
-    await pdfIndexer(req.file.path, collectionName);
+    const { sessionId, qdrantUrl } = req.body;
+    if (!req.file || !sessionId) return res.status(400).json({ error: "Missing file or session" });
+    const collectionName = generateCollectionName(sessionId, "pdf");
+    await pdfIndexer(req.file.path, collectionName, qdrantUrl);
     res.json({ message: "Indexed", collectionName });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -46,10 +47,10 @@ router.post("/index/pdf", upload.single("file"), async (req, res) => {
 
 router.post("/index/text", async (req, res) => {
   try {
-    const { text, sessionId } = req.body;
+    const { text, sessionId, qdrantUrl } = req.body;
     if (!text || !sessionId) return res.status(400).json({ error: "Missing parameters" });
     const collectionName = generateCollectionName(sessionId, "text");
-    await textIndexer(text, collectionName);
+    await textIndexer(text, collectionName, qdrantUrl);
     res.json({ message: "Indexed", collectionName });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -62,7 +63,8 @@ router.post("/start-session", (req, res) => {
 
 router.post("/cleanup/:sessionId", async (req, res) => {
   try {
-    const result = await deleteSessionCollections(req.params.sessionId);
+    const { qdrantUrl } = req.body;
+    const result = await deleteSessionCollections(req.params.sessionId, qdrantUrl);
     res.json({ message: "Cleaned up", ...result });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -4,13 +4,15 @@ import MessageList from './chat/MessageList';
 import ChatInput from './chat/ChatInput';
 import API_BASE_URL from '../api/config';
 
-export default function ChatInterface({ sessionId, selectedCollections, messages, setMessages, onScroll }) {
+export default function ChatInterface({ sessionId, selectedCollections, messages, setMessages, onScroll, privacyMode, customQdrantUrl }) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  const qdrantUrl = privacyMode ? customQdrantUrl : null;
 
   const handleManualRewrite = async () => {
     if (!input.trim() || isRewriting || isLoading) return;
@@ -38,6 +40,11 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
       setInput(''); return;
     }
 
+    if (privacyMode && !customQdrantUrl) {
+      setMessages(prev => [...prev, { id: Date.now(), text: input, sender: 'user' }, { id: Date.now() + 1, text: "Please provide a Qdrant DB URL in the top bar for Privacy Mode.", sender: 'ai', isError: true }]);
+      setInput(''); return;
+    }
+
     const userMsg = { id: Date.now(), text: input, sender: 'user' };
     const currentHistory = [...messages];
     setMessages(prev => [...prev, userMsg]);
@@ -45,7 +52,13 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
     try {
       const res = await fetch(`${API_BASE_URL}/chat/query`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: q, collectionNames: selectedCollections, rewrite: false, history: currentHistory }),
+        body: JSON.stringify({ 
+          query: q, 
+          collectionNames: selectedCollections, 
+          rewrite: false, 
+          history: currentHistory,
+          qdrantUrl 
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');

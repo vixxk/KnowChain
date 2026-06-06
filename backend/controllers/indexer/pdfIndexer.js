@@ -3,7 +3,7 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { getEmbeddings } from "../../utils/ai.js";
 import { chunkArray, runIncrementalIndexing } from "./base.js";
 
-export async function pdfIndexer(pdfFilePath, collectionName) {
+export async function pdfIndexer(pdfFilePath, collectionName, qdrantUrl = null) {
   const loader = new PDFLoader(pdfFilePath, { splitPages: false });
   const rawDocs = await loader.load();
   const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 1000, chunkOverlap: 200 });
@@ -19,5 +19,5 @@ export async function pdfIndexer(pdfFilePath, collectionName) {
 
   const embeddings = getEmbeddings();
   const batches = chunkArray(docs, 100);
-  await runIncrementalIndexing(batches, embeddings, collectionName);
+  await runIncrementalIndexing(batches, embeddings, collectionName, qdrantUrl);
 }

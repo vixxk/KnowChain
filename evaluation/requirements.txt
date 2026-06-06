@@ -1,0 +1,8 @@
+ragas
+pandas
+datasets
+langchain-fireworks
+langchain-google-genai
+python-dotenv
+openpyxl
+fpdf2

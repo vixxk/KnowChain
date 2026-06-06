@@ -1,7 +1,7 @@
 import DocumentUpload from './DocumentUpload';
 import { HiOutlineDatabase, HiOutlineGlobeAlt, HiOutlineCube, HiX, HiOutlineDocumentText } from 'react-icons/hi';
 
-export default function SessionManager({ sessions, setSessions, activeSessionId, setActiveSessionId, updateActiveSession, cleanupSessionOnServer }) {
+export default function SessionManager({ sessions, setSessions, activeSessionId, setActiveSessionId, updateActiveSession, cleanupSessionOnServer, privacyMode, customQdrantUrl }) {
     const currentSession = sessions[activeSessionId] || { documents: [], selectedCollections: [] };
     const { documents, selectedCollections } = currentSession;
     const sessionId = activeSessionId;
@@ -9,7 +9,7 @@ export default function SessionManager({ sessions, setSessions, activeSessionId,
     const addDocument = (doc) => {
         updateActiveSession(curr => ({
             documents: [...curr.documents, { ...doc, id: Date.now() }],
-            selectedCollections: [doc.collection]
+            selectedCollections: [...curr.selectedCollections, doc.collection]
         }));
     };
 
@@ -46,7 +46,12 @@ export default function SessionManager({ sessions, setSessions, activeSessionId,
                     Sources
                 </h3>
                 <div className="bg-[#111720] border border-white/[0.06] rounded-2xl p-5">
-                    <DocumentUpload sessionId={sessionId} onDocumentAdded={addDocument} />
+                    <DocumentUpload 
+                        sessionId={sessionId} 
+                        onDocumentAdded={addDocument} 
+                        privacyMode={privacyMode} 
+                        customQdrantUrl={customQdrantUrl} 
+                    />
                 </div>
             </div>
             <div>

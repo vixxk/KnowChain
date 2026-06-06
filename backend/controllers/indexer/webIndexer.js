@@ -4,7 +4,7 @@ import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { getEmbeddings } from "../../utils/ai.js";
 import { chunkArray, runIncrementalIndexing } from "./base.js";
 
-export async function webIndexer(url, collectionName) {
+export async function webIndexer(url, collectionName, qdrantUrl = null) {
   const response = await axios.get(url, { 
     headers: { 
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -34,5 +34,5 @@ export async function webIndexer(url, collectionName) {
 
   const embeddings = getEmbeddings();
   const batches = chunkArray(docs, 100);
-  await runIncrementalIndexing(batches, embeddings, collectionName);
+  await runIncrementalIndexing(batches, embeddings, collectionName, qdrantUrl);
 }

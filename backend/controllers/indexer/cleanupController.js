@@ -1,9 +1,11 @@
-export async function deleteSessionCollections(sessionId) {
+export async function deleteSessionCollections(sessionId, qdrantUrl = null) {
   if (!sessionId) return { deleted: 0 };
   const sanitizedPrefix = sessionId.replace(/[^a-zA-Z0-9_-]/g, "_");
+  const effectiveQdrantUrl = (qdrantUrl && qdrantUrl.trim()) ? qdrantUrl.trim() : null;
+  const url = effectiveQdrantUrl || process.env.QDRANT_URL;
   
   try {
-    const listRes = await fetch(`${process.env.QDRANT_URL}/collections`, {
+    const listRes = await fetch(`${url}/collections`, {
       headers: { "api-key": process.env.QDRANT_API_KEY },
     });
     const listData = await listRes.json();
@@ -14,7 +16,7 @@ export async function deleteSessionCollections(sessionId) {
       .filter(name => name.startsWith(sanitizedPrefix));
 
     for (const name of toDelete) {
-      await fetch(`${process.env.QDRANT_URL}/collections/${name}`, {
+      await fetch(`${url}/collections/${name}`, {
         method: "DELETE",
         headers: { "api-key": process.env.QDRANT_API_KEY },
       });

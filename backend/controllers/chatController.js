@@ -1,12 +1,14 @@
 import OpenAI from "openai";
 import { OpenAIEmbeddings } from "@langchain/openai";
 import { QdrantVectorStore } from "@langchain/qdrant";
+import { QdrantClient } from "@qdrant/js-client-rest";
 import dotenv from "dotenv";
 import { throttleRequest, forceBackoff } from "../utils/throttle.js";
+import { tokenize, computeBM25, normalizeScores, rerankDocuments } from "../utils/ai.js";
 
 const FIREWORKS_API_KEY = process.env.FIREWORKS_API_KEY;
 const FW_BASE_URL = "https://api.fireworks.ai/inference/v1";
-const CHAT_MODEL = "accounts/fireworks/models/mixtral-8x22b-instruct";
+const CHAT_MODEL = "accounts/fireworks/models/deepseek-v4-pro";
 const EMBED_MODEL = "nomic-ai/nomic-embed-text-v1.5";
 
 async function executeWithRetry(fn, maxRetries = 3, initialDelay = 2000) {
@@ -52,22 +54,82 @@ async function rewriteQuery(originalQuery) {
  */
 async function retrieveFromCollection(collectionName, query, embeddings) {
   try {
-    const vectorStore = await QdrantVectorStore.fromExistingCollection(embeddings, {
-      url: process.env.QDRANT_URL,
-      collectionName,
+    let url = process.env.QDRANT_URL;
+    if (url && url.endsWith("/")) url = url.slice(0, -1);
+    
+    const client = new QdrantClient({
+      url,
       apiKey: process.env.QDRANT_API_KEY,
-      clientConfig: { checkCompatibility: false },
+      checkCompatibility: false,
+      timeout: 15000,
     });
 
-    const retriever = vectorStore.asRetriever({ k: 5 });
-    const searchReadyQuery = `search_query: ${query}`;
-    const docs = await retriever.invoke(searchReadyQuery);
-    
-    console.log(`📄 [RAG] ${collectionName}: Found ${docs.length} chunks`);
-    return docs.map(doc => ({
-      ...doc,
-      metadata: { ...doc.metadata, collectionName }
-    }));
+    const searchQuery = `search_query: ${query}`;
+    const queryVector = await embeddings.embedQuery(searchQuery);
+
+    try {
+      const scrollResult = await client.scroll(collectionName, {
+        limit: 1000,
+        with_payload: true,
+        with_vector: true
+      });
+      const points = scrollResult.points || [];
+
+      if (points.length === 0) return [];
+
+      const vectorScores = points.map(point => {
+        let docVector = null;
+        if (Array.isArray(point.vector)) {
+          docVector = point.vector;
+        } else if (point.vector && typeof point.vector === 'object') {
+          const keys = Object.keys(point.vector);
+          if (keys.length > 0) docVector = point.vector[keys[0]];
+        }
+        
+        let score = 0.0;
+        if (docVector && queryVector) {
+          for (let i = 0; i < queryVector.length; i++) {
+            score += queryVector[i] * (docVector[i] || 0.0);
+          }
+        }
+        return score;
+      });
+
+      const queryTerms = tokenize(query);
+      const bm25Scores = computeBM25(points, queryTerms);
+
+      const normVectorScores = normalizeScores(vectorScores);
+      const normBm25Scores = normalizeScores(bm25Scores);
+
+      const scoredPoints = points.map((point, index) => {
+        const hybridScore = 0.7 * normVectorScores[index] + 0.3 * normBm25Scores[index];
+        return { point, hybridScore };
+      });
+
+      // Sort and take top 25 candidates for reranking
+      scoredPoints.sort((a, b) => b.hybridScore - a.hybridScore);
+      const candidates = scoredPoints.slice(0, 25).map(item => ({
+        pageContent: (item.point.payload.pageContent || item.point.payload.content || "").replace(/^search_document:\s*/i, ""),
+        metadata: { ...item.point.payload.metadata, collectionName }
+      }));
+
+      // Rerank candidates using Fireworks AI Reranker down to top 10
+      const rerankedDocs = await rerankDocuments(query, candidates, 10);
+      console.log(`🧠 [HybridSearch-Legacy] Retrieved ${points.length} chunks. Reranked top candidates down to ${rerankedDocs.length} results.`);
+      return rerankedDocs;
+    } catch (scrollError) {
+      console.warn(`⚠️ [Hybrid-Legacy] Scroll failed, falling back to pure vector search:`, scrollError.message);
+      const searchResults = await client.search(collectionName, {
+        vector: queryVector,
+        limit: 10,
+        with_payload: true,
+      });
+      
+      return searchResults.map(res => ({
+        pageContent: (res.payload.pageContent || res.payload.content || "").replace(/^search_document:\s*/i, ""),
+        metadata: { ...res.payload.metadata, collectionName }
+      }));
+    }
   } catch (error) {
     console.error(`⚠️ [RAG] Failed to retrieve from ${collectionName}: ${error.message}`);
     return [];
@@ -157,6 +219,7 @@ COGNITIVE FORMATTING RULES:
 3. **Architectural Workflows**: When explaining systems or processes, use "Step Headers" (e.g., ### DATA INGESTION) to separate distinct phases.
 4. **Highlights**: Use **bold text** to highlight the MOST CRITICAL answers or 'Neural Anchors' so the user can skim the response.
 5. **Tone**: Maintain a premium, executive tone.
+6. **Grounding**: Synthesize facts across different sections of the DOCUMENT CONTENT cohesively. Rely ONLY on the clear facts stated in the DOCUMENT CONTENT. Do not extrapolate, assume, or fabricate details.
 
 DOCUMENT CONTENT:
 ${contextText}`;

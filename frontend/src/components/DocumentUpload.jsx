@@ -3,7 +3,7 @@ import { HiCloudUpload, HiLink, HiCheckCircle, HiXCircle } from 'react-icons/hi'
 import axios from 'axios';
 import API_BASE_URL from '../api/config';
 
-export default function DocumentUpload({ sessionId, onDocumentAdded }) {
+export default function DocumentUpload({ sessionId, onDocumentAdded, privacyMode, customQdrantUrl }) {
     const [isUploading, setIsUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState(null);
     const [urlInput, setUrlInput] = useState('');
@@ -11,10 +11,18 @@ export default function DocumentUpload({ sessionId, onDocumentAdded }) {
     const [isDragActive, setIsDragActive] = useState(false);
     const fileInputRef = useRef(null);
 
+    const qdrantUrl = privacyMode ? customQdrantUrl : null;
+
     const handleFileUpload = async (file) => {
         if (!file || file.type !== 'application/pdf') { setUploadStatus({ type: 'error', message: 'PDF only.' }); return; }
+        if (privacyMode && !customQdrantUrl) { setUploadStatus({ type: 'error', message: 'Set Qdrant URL first.' }); return; }
+        
         setIsUploading(true); setUploadStatus(null);
-        const formData = new FormData(); formData.append('file', file); formData.append('sessionId', sessionId);
+        const formData = new FormData(); 
+        formData.append('file', file); 
+        formData.append('sessionId', sessionId);
+        if (qdrantUrl) formData.append('qdrantUrl', qdrantUrl);
+
         try {
             const res = await axios.post(`${API_BASE_URL}/chat/index/pdf`, formData);
             onDocumentAdded({ name: file.name, type: 'pdf', size: (file.size / 1024 / 1024).toFixed(2) + ' MB', collection: res.data.collectionName });
@@ -25,9 +33,11 @@ export default function DocumentUpload({ sessionId, onDocumentAdded }) {
 
     const handleUrlSubmit = async (e) => {
         e.preventDefault(); if (!urlInput.trim() || isUploading) return;
+        if (privacyMode && !customQdrantUrl) { setUploadStatus({ type: 'error', message: 'Set Qdrant URL first.' }); return; }
+        
         setIsUploading(true); setUploadStatus(null);
         try {
-            const res = await axios.post(`${API_BASE_URL}/chat/index/web`, { url: urlInput, sessionId });
+            const res = await axios.post(`${API_BASE_URL}/chat/index/web`, { url: urlInput, sessionId, qdrantUrl });
             onDocumentAdded({ name: new URL(urlInput).hostname, type: 'web', collection: res.data.collectionName });
             setUrlInput(''); setUploadStatus({ type: 'success', message: 'Linked.' }); setTimeout(() => setUploadStatus(null), 3000);
         } catch (e) { setUploadStatus({ type: 'error', message: e.response?.data?.error || 'Failed.' }); }
@@ -36,9 +46,11 @@ export default function DocumentUpload({ sessionId, onDocumentAdded }) {
 
     const handleTextSubmit = async (e) => {
         e.preventDefault(); if (!textInput.trim() || isUploading) return;
+        if (privacyMode && !customQdrantUrl) { setUploadStatus({ type: 'error', message: 'Set Qdrant URL first.' }); return; }
+        
         setIsUploading(true); setUploadStatus(null);
         try {
-            const res = await axios.post(`${API_BASE_URL}/chat/index/text`, { text: textInput, sessionId });
+            const res = await axios.post(`${API_BASE_URL}/chat/index/text`, { text: textInput, sessionId, qdrantUrl });
             onDocumentAdded({ name: 'Snippet ' + new Date().toLocaleTimeString(), type: 'text', collection: res.data.collectionName });
             setTextInput(''); setUploadStatus({ type: 'success', message: 'Ingested.' }); setTimeout(() => setUploadStatus(null), 3000);
         } catch (e) { setUploadStatus({ type: 'error', message: e.response?.data?.error || 'Failed.' }); }

@@ -13,6 +13,8 @@ pnpm-lock.yaml
 .env.local
 .env.*.local
 
+uploads
+
 # Build outputs
 dist/
 build/
