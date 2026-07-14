@@ -11,7 +11,18 @@ import API_BASE_URL from './api/config';
 function App() {
 	const [sessions, setSessions] = useState(() => {
 		const saved = localStorage.getItem('knowchain_v2_sessions');
-		if (saved) { try { return JSON.parse(saved); } catch (e) { return {}; } }
+		if (saved) {
+			try {
+				const parsed = JSON.parse(saved);
+				if (parsed && typeof parsed === 'object') {
+					delete parsed['undefined'];
+					delete parsed[null];
+					return parsed;
+				}
+			} catch (e) {
+				return {};
+			}
+		}
 		return {};
 	});
 	const [activeSessionId, setActiveSessionId] = useState(null);
@@ -84,14 +95,23 @@ function App() {
 		setIsLoading(true); setAppStatus('loading');
 		try {
 			const res = await fetch(`${API_BASE_URL}/chat/start-session`, { method: 'POST' });
+			if (!res.ok) {
+				throw new Error(`Server returned status ${res.status}`);
+			}
 			const data = await res.json();
 			const newId = data.sessionId;
+			if (!newId) {
+				throw new Error("No sessionId returned by server");
+			}
 			setSessions(prev => ({
 				...prev,
 				[newId]: { id: newId, name: `Chat ${Object.keys(prev).length + 1}`, createdAt: Date.now(), lastActive: Date.now(), documents: [], messages: [], selectedCollections: [] }
 			}));
 			setActiveSessionId(newId); setAppStatus('ready');
-		} catch (e) { setAppStatus('error'); }
+		} catch (e) {
+			console.error("Failed to start session:", e);
+			setAppStatus('error');
+		}
 		finally { setIsLoading(false); }
 	};
 
