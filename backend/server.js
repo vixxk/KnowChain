@@ -8,14 +8,13 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, ".env") });
 
 import express from "express";
-import cors from "cors";
 import chatRoutes from "./routes/chatRoutes.js";
 import swaggerUi from "swagger-ui-express";
 import fs from "fs";
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: "*", credentials: true }));
+
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/chat", chatRoutes);
@@ -30,6 +29,14 @@ if (swaggerDocument) {
 }
 
 app.get("/", (req, res) => res.send("✅ KnowChain LLM Backend running"));
+
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "healthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
 
 // Session timeout tracking (the actual session creation is in chatRoutes.js)
 const sessionTimeout = new Map();
