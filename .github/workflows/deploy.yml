@@ -1,0 +1,32 @@
+name: Deploy Backend to EC2
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          script: |
+            # Navigate to the cloned repository
+            cd ~/knowchain || cd ~/KnowChain
+            
+            # Discard any local changes and pull latest code
+            git stash
+            git pull origin main || git pull origin master
+            
+            # Navigate to backend, install deps with legacy peer deps, and restart PM2
+            cd backend
+            npm install --omit=dev --legacy-peer-deps
+            pm2 restart knowchain-backend || pm2 start server.js --name "knowchain-backend" --node-args="--dns-result-order=ipv4first"
+            pm2 save
