@@ -8,11 +8,13 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, ".env") });
 
 import express from "express";
+import cors from "cors";
 import chatRoutes from "./routes/chatRoutes.js";
 import swaggerUi from "swagger-ui-express";
 import fs from "fs";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 
