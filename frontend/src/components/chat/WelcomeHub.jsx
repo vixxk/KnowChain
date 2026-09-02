@@ -1,21 +1,23 @@
 export default function WelcomeHub() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center animate-fade-in text-center px-4">
-      <div className="w-20 h-20 bg-[#D4AF37]/10 rounded-[1.75rem] flex items-center justify-center mb-8 shadow-2xl shadow-[#D4AF37]/5 border border-[#D4AF37]/10 overflow-hidden">
-        <img src="/favicon.png" className="w-12 h-12 object-contain" alt="KnowChain" />
+      <div className="w-14 h-14 bg-[#08090b] border border-[#2a2d36] rounded-xl flex items-center justify-center mb-6 overflow-hidden">
+        <img src="/favicon.png" className="w-full h-full object-cover" alt="KnowChain" />
       </div>
-      <h2 className="text-2xl font-extrabold text-white tracking-tight mb-3">Your Knowledge Hub</h2>
-      <p className="text-[13px] text-[#8A94A6] max-w-sm leading-relaxed mb-10 font-medium">
-        Link your data to the <span className="text-[#D4AF37]">Neural Feed</span>. Sync documents or websites to begin.
+      <h2 className="text-2xl lg:text-3xl font-bold text-[#eef0f3] tracking-tight mb-2 font-mono">
+        KnowChain Engine
+      </h2>
+      <p className="text-xs lg:text-sm text-[#9ca3af] max-w-md leading-relaxed mb-8">
+        Sync documents to the <span className="text-[#60a5fa] font-mono font-medium">Neural Feed</span> to begin context-aware querying.
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
-        <div className="bg-white/[0.02] border border-white/[0.04] p-5 rounded-2xl text-left hover:bg-white/[0.04] transition-all group">
-          <h4 className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest mb-1.5">Document Sync</h4>
-          <p className="text-[12px] text-[#8A94A6]">Upload any <span className="text-white font-bold">PDF</span> or paste <span className="text-white font-bold">huge text</span> snippets to sync them with your private feed.</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-xl text-left">
+        <div className="bg-[#16181d] border border-[#1f2229] p-4 rounded-lg hover:border-[#2a2d36] transition-all">
+          <h4 className="text-[11px] font-semibold text-[#3b82f6] uppercase tracking-wider mb-1.5 font-mono">Document Indexing</h4>
+          <p className="text-xs text-[#9ca3af] leading-relaxed">Upload <span className="text-[#eef0f3] font-mono">PDFs</span> or paste <span className="text-[#eef0f3] font-mono">text snippets</span> to index into Qdrant vector space.</p>
         </div>
-        <div className="bg-white/[0.02] border border-white/[0.04] p-5 rounded-2xl text-left hover:bg-white/[0.04] transition-all group">
-          <h4 className="text-[10px] font-bold text-[#E8ECF1] uppercase tracking-widest mb-1.5">Smart Search</h4>
-          <p className="text-[12px] text-[#8A94A6]">Connect any <span className="text-white font-bold">website link</span> to search and get answers instantly.</p>
+        <div className="bg-[#16181d] border border-[#1f2229] p-4 rounded-lg hover:border-[#2a2d36] transition-all">
+          <h4 className="text-[11px] font-semibold text-[#60a5fa] uppercase tracking-wider mb-1.5 font-mono">Verifiable RAG</h4>
+          <p className="text-xs text-[#9ca3af] leading-relaxed">Connect <span className="text-[#eef0f3] font-mono">Web Nodes</span> for real-time answer generation with exact source attribution.</p>
         </div>
       </div>
     </div>

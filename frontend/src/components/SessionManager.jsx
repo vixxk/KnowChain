@@ -1,7 +1,7 @@
 import DocumentUpload from './DocumentUpload';
 import { HiOutlineDatabase, HiOutlineGlobeAlt, HiOutlineCube, HiX, HiOutlineDocumentText } from 'react-icons/hi';
 
-export default function SessionManager({ sessions, setSessions, activeSessionId, setActiveSessionId, updateActiveSession, cleanupSessionOnServer, privacyMode, customQdrantUrl }) {
+export default function SessionManager({ sessions, setSessions, activeSessionId, setActiveSessionId, updateActiveSession, cleanupSessionOnServer, privacyMode, customQdrantUrl, onLoadingStateChange }) {
     const currentSession = sessions[activeSessionId] || { documents: [], selectedCollections: [] };
     const { documents, selectedCollections } = currentSession;
     const sessionId = activeSessionId;
@@ -38,69 +38,104 @@ export default function SessionManager({ sessions, setSessions, activeSessionId,
         return <HiOutlineCube />;
     };
 
+    const isAllSelected = documents.length > 0 && selectedCollections.length === documents.length;
+
+    const deleteAllDocuments = () => {
+        updateActiveSession(() => ({
+            documents: [],
+            selectedCollections: []
+        }));
+    };
+
     return (
-        <div className="flex flex-col gap-0 p-5 animate-fade-in">
-            <div className="mb-6">
-                <h3 className="text-xs font-bold text-[#8A94A6] uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
-                    <HiOutlineDatabase className="text-[#D4AF37] text-sm" />
-                    Sources
+        <div className="flex flex-col gap-5 p-4 animate-fade-in">
+            <div>
+                <h3 className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider mb-2.5 flex items-center gap-1.5 font-mono">
+                    <HiOutlineDatabase className="text-[#3b82f6]" size={13} />
+                    <span>Sync Unit</span>
                 </h3>
-                <div className="bg-[#111720] border border-white/[0.06] rounded-2xl p-5">
+                <div className="tech-card p-3">
                     <DocumentUpload 
                         sessionId={sessionId} 
                         onDocumentAdded={addDocument} 
                         privacyMode={privacyMode} 
                         customQdrantUrl={customQdrantUrl} 
+                        onLoadingStateChange={onLoadingStateChange}
                     />
                 </div>
             </div>
+
             <div>
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xs font-bold text-[#8A94A6] uppercase tracking-[0.15em] flex items-center gap-2">
+                <div className="flex items-center justify-between mb-2.5">
+                    <h3 className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider font-mono">
                         Neural Feed
                     </h3>
-                    <span className="px-2.5 py-1 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded-md text-[10px] text-[#D4AF37] font-bold tracking-wider">
+                    <span className="px-2 py-0.5 bg-[#08090b] border border-[#1f2229] rounded text-[10px] text-[#9ca3af] font-mono">
                         {selectedCollections.length}/{documents.length} ACTIVE
                     </span>
                 </div>
-                <div className="bg-[#111720] border border-white/[0.06] rounded-2xl p-5">
+
+                <div className="bg-[#16181d] border border-[#1f2229] rounded-lg p-2.5 space-y-2">
                     {documents.length > 0 && (
-                        <div className="flex gap-2 mb-4">
+                        <div className="flex items-center justify-between px-1 pb-2 border-b border-[#1f2229]">
                             <button
-                                onClick={() => updateActiveSession(c => ({ selectedCollections: c.documents.map(d => d.collection) }))}
-                                className="flex-1 py-2.5 text-xs font-bold text-black bg-[#D4AF37] rounded-xl uppercase tracking-wider hover:brightness-110 transition-all"
-                            >Select All</button>
+                                onClick={() => {
+                                    if (isAllSelected) {
+                                        updateActiveSession(() => ({ selectedCollections: [] }));
+                                    } else {
+                                        updateActiveSession(c => ({ selectedCollections: c.documents.map(d => d.collection) }));
+                                    }
+                                }}
+                                className="text-[11px] uppercase tracking-wider text-[#6b7280] hover:text-[#3b82f6] transition-colors font-mono font-medium"
+                            >
+                                {isAllSelected ? 'DESELECT ALL' : 'SELECT ALL'}
+                            </button>
+                            <span className="text-[#2a2d36] text-[10px]">|</span>
                             <button
-                                onClick={() => updateActiveSession(() => ({ selectedCollections: [] }))}
-                                className="flex-1 py-2.5 text-xs font-bold text-[#8A94A6] bg-white/[0.03] border border-white/[0.06] rounded-xl uppercase tracking-wider hover:bg-white/[0.06] transition-all"
-                            >Clear All</button>
+                                onClick={deleteAllDocuments}
+                                className="text-[11px] uppercase tracking-wider text-[#6b7280] hover:text-[#f87171] transition-colors font-mono font-medium"
+                            >
+                                DELETE ALL
+                            </button>
                         </div>
                     )}
-                    <div className="space-y-2.5 max-h-[40vh] overflow-y-auto scrollbar-hide">
+
+                    <div className="space-y-1 max-h-[42vh] overflow-y-auto">
                         {documents.length === 0 ? (
-                            <div className="py-10 text-center">
-                                <HiOutlineCube className="text-3xl text-[#4A5568] mx-auto mb-3" />
-                                <p className="text-sm text-[#4A5568]">Your feed is empty.</p>
+                            <div className="py-6 text-center">
+                                <HiOutlineCube className="text-2xl text-[#454952] mx-auto mb-1.5" />
+                                <p className="text-xs text-[#6b7280] font-mono">Neural feed empty</p>
                             </div>
                         ) : documents.map(doc => {
                             const sel = selectedCollections.includes(doc.collection);
                             return (
-                                <div key={doc.id} className={`flex items-center gap-4 p-4 rounded-xl border transition-all group cursor-pointer ${sel ? 'bg-[#D4AF37]/5 border-[#D4AF37]/20' : 'bg-white/[0.01] border-white/[0.04] hover:border-white/10'}`}>
+                                <div 
+                                    key={doc.id} 
+                                    className={`flex items-center gap-2.5 p-2 rounded-md transition-all group cursor-pointer ${
+                                        sel 
+                                            ? 'bg-[#3b82f6]/10 border-l-2 border-l-[#3b82f6] border-t border-r border-b border-t-[#2a2d36] border-r-[#2a2d36] border-b-[#2a2d36]' 
+                                            : 'bg-[#101216] border border-[#1f2229] hover:bg-[#1c1f26] hover:border-[#2a2d36]'
+                                    }`}
+                                >
                                     <button
                                         onClick={() => toggleCollection(doc.collection)}
-                                        className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-all ${sel ? 'bg-[#D4AF37] border-[#D4AF37]' : 'border-white/15 group-hover:border-[#D4AF37]/40'}`}
+                                        className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center shrink-0 transition-all ${
+                                            sel ? 'bg-[#3b82f6] border-[#3b82f6]' : 'border-[#2a2d36] group-hover:border-[#3a3e4a]'
+                                        }`}
                                     >
-                                        {sel && <svg className="w-3 h-3 text-black" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                        {sel && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                                     </button>
-                                    <div className="flex items-center gap-3 flex-1 min-w-0" onClick={() => updateActiveSession(() => ({ selectedCollections: [doc.collection] }))}>
-                                        <span className={`text-lg ${sel ? 'text-[#D4AF37]' : 'text-[#4A5568]'}`}>{getIcon(doc.type)}</span>
+
+                                    <div className="flex items-center gap-2 flex-1 min-w-0" onClick={() => updateActiveSession(() => ({ selectedCollections: [doc.collection] }))}>
+                                        <span className={`text-sm ${sel ? 'text-[#60a5fa]' : 'text-[#6b7280]'}`}>{getIcon(doc.type)}</span>
                                         <div className="truncate">
-                                            <p className="text-sm font-semibold text-white truncate">{doc.name}</p>
-                                            <p className="text-xs text-[#4A5568] mt-0.5">{doc.type} • {doc.size || 'Auto'}</p>
+                                            <p className="text-xs font-medium text-[#eef0f3] truncate leading-tight">{doc.name}</p>
+                                            <p className="text-[10px] text-[#6b7280] font-mono mt-0.5">{doc.type} • {doc.size || 'Auto'}</p>
                                         </div>
                                     </div>
-                                    <button onClick={() => removeDocument(doc.id)} className="p-1.5 text-[#4A5568] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
-                                        <HiX size={14} />
+
+                                    <button onClick={() => removeDocument(doc.id)} className="p-1 text-[#6b7280] hover:text-[#f87171] opacity-0 group-hover:opacity-100 transition-all">
+                                        <HiX size={13} />
                                     </button>
                                 </div>
                             );

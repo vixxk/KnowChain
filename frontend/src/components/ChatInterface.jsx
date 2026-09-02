@@ -1,14 +1,21 @@
 import { useState, useRef, useEffect } from 'react';
+import { HiOutlineDatabase, HiCheckCircle } from 'react-icons/hi';
 import WelcomeHub from './chat/WelcomeHub';
 import MessageList from './chat/MessageList';
 import ChatInput from './chat/ChatInput';
 import API_BASE_URL from '../api/config';
 
-export default function ChatInterface({ sessionId, selectedCollections, messages, setMessages, onScroll, privacyMode, customQdrantUrl }) {
+export default function ChatInterface({ sessionId, selectedCollections, messages, setMessages, onScroll, privacyMode, customQdrantUrl, onLoadingStateChange }) {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
   const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    if (onLoadingStateChange) {
+      onLoadingStateChange(isLoading || isRewriting);
+    }
+  }, [isLoading, isRewriting, onLoadingStateChange]);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -73,10 +80,15 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
   return (
     <div className="flex-1 flex flex-col min-h-0 h-full relative">
       {activeCount > 0 && (
-        <div className="h-12 flex items-center px-4 lg:px-8 shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full animate-pulse"></div>
-            <span className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-[0.15em]">{activeCount} Unit Active</span>
+        <div className="h-11 flex items-center px-4 lg:px-8 shrink-0 border-b border-[#1f2229] bg-[#101216]/95 backdrop-blur-md z-10 font-mono">
+          <div className="flex items-center gap-2.5 min-w-0">
+            {/* Active Count Badge */}
+            <div className="px-2.5 py-1 bg-[#08090b] border border-[#2a2d36] rounded-md flex items-center gap-2 shrink-0">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_8px_#3b82f6] animate-pulse"></span>
+              <span className="text-xs font-semibold text-[#60a5fa] uppercase tracking-wider">
+                {activeCount} {activeCount === 1 ? 'Neural Feed Selected' : 'Neural Feeds Selected'}
+              </span>
+            </div>
           </div>
         </div>
       )}

@@ -1,225 +1,236 @@
 import { useState } from 'react';
-import { HiOutlineUserCircle, HiCheck, HiOutlineDuplicate, HiExternalLink } from 'react-icons/hi';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { 
+  HiOutlineDuplicate, HiCheck, HiExternalLink, HiOutlineUser
+} from 'react-icons/hi';
 import API_BASE_URL from '../api/config';
 
 export default function MessageBubble({ message }) {
-    const isAi = message.sender === 'ai';
-    const isError = message.isError;
-    const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(message.text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message.text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-    if (isAi) {
-        return (
-            <div className="flex gap-4 items-start animate-fade-up w-full">
-                <div className="w-9 h-9 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center shrink-0 mt-1 shadow-lg shadow-black/20 overflow-hidden">
-                    <img src="/favicon.png" className="w-6 h-6 object-contain" alt="AI" />
-                </div>
-                <div className="flex-1 max-w-[85%] space-y-1.5">
-                    <div className="flex items-center justify-between gap-2 flex-wrap min-h-[24px]">
-                        <div className="flex items-center gap-2">
-                            {message.sourceCount && message.text.includes('![') && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#38B28E]/10 border border-[#38B28E]/20 rounded-md text-[10px] font-bold text-[#38B28E] uppercase tracking-wider">
-                                    {message.sourceCount} {message.sourceCount === 1 ? 'Source' : 'Sources'}
-                                </span>
-                            )}
-                        </div>
-                        <button 
-                            onClick={handleCopy}
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all border ${
-                                copied 
-                                    ? 'bg-[#38B28E]/20 border-[#38B28E]/40 text-[#38B28E]' 
-                                    : 'bg-white/[0.04] border-white/[0.08] text-[#8A94A6] hover:text-white hover:bg-white/[0.08]'
-                            }`}
-                        >
-                            {copied ? (
-                                <>
-                                    <HiCheck className="text-xs" />
-                                    <span>Copied</span>
-                                </>
-                            ) : (
-                                <>
-                                    <HiOutlineDuplicate className="text-xs" />
-                                    <span>Copy</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
-                    <div className={`group relative bg-[#111720]/40 lg:bg-[#38B28E]/[0.06] border border-[#38B28E]/15 rounded-2xl rounded-tl-sm px-5 py-4 ${isError ? 'bg-red-500/5 border-red-500/20' : ''}`}>
-                        <div className={`text-[13.5px] leading-[1.8] ${isError ? 'text-red-400' : 'text-[#C8D1DC]'}`}>
-                            <ReactMarkdown 
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                    // Auto-style [Source X] citations in paragraphs
-                                    p: ({node, children, ...rest}) => {
-                                        const sources = message.sources || [];
-                                        const processChildren = (kids) => {
-                                            if (!Array.isArray(kids)) kids = [kids];
-                                            return kids.map((child, i) => {
-                                                if (typeof child === 'string') {
-                                                    const parts = child.split(/(\[Source\s*\d+\])/gi);
-                                                    if (parts.length > 1) {
-                                                        return parts.map((part, j) => {
-                                                            if (/^\[Source\s*\d+\]$/i.test(part)) {
-                                                                const num = parseInt(part.match(/\d+/)?.[0]);
-                                                                const src = sources.find(s => s.id === num);
-                                                                let href = src?.source || null;
-                                                                if (href && href.startsWith('uploads/')) {
-                                                                    href = `${API_BASE_URL}/${href}`;
-                                                                }
-                                                                if (href) {
-                                                                    return <a key={`${i}-${j}`} href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 border border-[#D4AF37]/30 rounded text-[10px] font-bold text-[#D4AF37] no-underline transition-all cursor-pointer"><HiExternalLink className="text-[9px]" />{part}</a>;
-                                                                }
-                                                                return <span key={`${i}-${j}`} onClick={() => { document.getElementById(`source-ref-${message.id}`)?.scrollIntoView({ behavior: 'smooth' }); }} className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 bg-[#D4AF37]/15 hover:bg-[#D4AF37]/25 border border-[#D4AF37]/30 rounded text-[10px] font-bold text-[#D4AF37] cursor-pointer transition-all"><HiExternalLink className="text-[9px]" />{part}</span>;
-                                                            }
-                                                            return part;
-                                                        });
-                                                    }
-                                                }
-                                                return child;
-                                            });
-                                        };
-                                        return <p {...rest}>{processChildren(children)}</p>;
-                                    },
-                                    // Custom citation style [1]
-                                    a: ({node, ...rest}) => {
-                                        const { children, ...validProps } = rest;
-                                        const hasImage = Array.isArray(children) ? children.some(c => typeof c !== 'string' && (c?.type?.name === 'img' || c?.props?.src)) : (children?.type?.name === 'img');
-                                        
-                                        if (hasImage) {
-                                            return <a {...validProps} className="block hover:opacity-90 transition-opacity">{children}</a>;
-                                        }
+  const isAi = message.sender === 'ai';
+  const isError = message.isError;
 
-                                        return (
-                                            <a {...validProps} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 -mx-0.5 bg-[#D4AF37]/10 hover:bg-[#D4AF37]/20 border border-[#D4AF37]/30 rounded text-[10px] font-bold text-[#D4AF37] no-underline transition-all">
-                                                {children}
-                                                <HiExternalLink className="text-[9px]" />
-                                            </a>
-                                        );
-                                    },
-                                    // Premium images
-                                    img: ({node, ...rest}) => {
-                                        const { alt, ...validProps } = rest;
-                                        return (
-                                            <span className="my-5 flex flex-col items-center gap-2 w-full">
-                                                <img 
-                                                    {...validProps} 
-                                                    alt={alt} 
-                                                    referrerPolicy="no-referrer"
-                                                    className="max-w-[85%] rounded-xl border border-white/10 shadow-2xl shadow-black/40" 
-                                                    onError={(e) => { e.target.style.display = 'none'; }}
-                                                />
-                                                {alt && <span className="text-[10px] text-[#4A5568] uppercase font-bold tracking-widest">{alt}</span>}
-                                            </span>
-                                        );
-                                    },
-                                    // Highlighting major points
-                                    strong: ({node, ...rest}) => {
-                                        const { children, ...validProps } = rest;
-                                        return (
-                                            <span {...validProps} className="inline-flex bg-[#D4AF37]/20 text-white font-black px-1.5 rounded shadow-[0_0_15px_rgba(212,175,55,0.2)] mx-0.5 align-middle">
-                                                {children}
-                                            </span>
-                                        );
-                                    },
-                                    // Code/Architecture blocks
-                                    code: ({node, inline, className, children, ...rest}) => {
-                                        const isBlock = className?.includes('language-');
-                                        return isBlock ? (
-                                            <span className="my-4 p-4 bg-black/40 border border-white/[0.04] rounded-xl overflow-x-auto block">
-                                                <code {...rest} className={`text-[12px] font-mono text-[#D4AF37] ${className || ''}`}>
-                                                    {children}
-                                                </code>
-                                            </span>
-                                        ) : (
-                                            <code {...rest} className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-teal-400 font-mono text-[12px]">
-                                                {children}
-                                            </code>
-                                        );
-                                    },
-                                    // Workflows / Architecture headings
-                                    h3: ({node, ...rest}) => {
-                                        const { children, ...validProps } = rest;
-                                        return (
-                                            <span {...validProps} className="mt-8 mb-3 text-[11px] font-black text-white uppercase tracking-[0.25em] flex items-center gap-3 w-full">
-                                                <span className="w-1.5 h-1.5 bg-[#D4AF37] rounded-full shrink-0"></span>
-                                                {children}
-                                                <span className="flex-1 h-[1px] bg-gradient-to-r from-white/10 to-transparent"></span>
-                                            </span>
-                                        );
-                                    }
-                                }}
-                            >
-                                {message.text}
-                            </ReactMarkdown>
-                        </div>
-                    </div>
-                    {/* Sources Reference Panel - Only visible if cited in text or has images */}
-                    {message.sources && message.sources.length > 0 && message.text.includes('![') && (
-                        <div id={`source-ref-${message.id}`} className="mt-2 bg-white/[0.02] border border-white/[0.06] rounded-xl px-4 py-3 space-y-2">
-                            <span className="text-[9px] font-bold text-[#8A94A6] uppercase tracking-widest">References</span>
-                            {[...new Map(message.sources.map(s => [s.id, s])).values()].map(src => (
-                                <div key={src.id} className="flex items-start gap-2">
-                                    <span className="shrink-0 inline-flex items-center px-1.5 py-0.5 bg-[#D4AF37]/10 border border-[#D4AF37]/20 rounded text-[9px] font-bold text-[#D4AF37]">{src.id}</span>
-                                    {src.source ? (
-                                        <a href={src.source.startsWith('http') ? src.source : `${API_BASE_URL}/${src.source}`} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#38B28E] hover:text-[#4DD4A8] truncate transition-colors flex items-center gap-1">
-                                            <HiExternalLink className="text-[10px] shrink-0" />
-                                            {src.source.length > 60 ? src.source.substring(0, 60) + '...' : src.source}
-                                        </a>
-                                    ) : (
-                                        <span className="text-[11px] text-[#6B7A90] truncate">{src.preview}</span>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        );
-    }
-
+  if (isAi) {
     return (
-        <div className="flex gap-4 items-start justify-end animate-fade-up w-full group">
-            <div className="flex-1 max-w-[75%] space-y-1.5">
-                <div className="flex items-center justify-end h-6">
-                     <button 
-                        onClick={handleCopy}
-                        className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider transition-all border ${
-                            copied 
-                                ? 'bg-[#38B28E]/20 border-[#38B28E]/40 text-[#38B28E]' 
-                                : 'bg-white/[0.04] border-white/[0.08] text-[#8A94A6] hover:text-white hover:bg-white/[0.08]'
-                        }`}
-                    >
-                        {copied ? (
-                            <>
-                                <HiCheck className="text-xs" />
-                                <span>Copied</span>
-                            </>
-                        ) : (
-                            <>
-                                <HiOutlineDuplicate className="text-xs" />
-                                <span>Copy</span>
-                            </>
-                        )}
-                    </button>
-                </div>
-                <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl rounded-tr-sm px-5 py-4 text-left">
-                    <div className="text-[14px] text-[#E8ECF1] leading-relaxed">
-                        <ReactMarkdown>
-                            {message.text}
-                        </ReactMarkdown>
+      <div className="animate-fade-in w-full max-w-4xl mx-auto my-4">
+        {/* Distinguishable High-Density AI Response Card Container */}
+        <div className={`rounded-xl border p-4 sm:p-5 bg-[#101216] transition-all shadow-md ${
+          isError 
+            ? 'border-[#f87171]/40 bg-[#f87171]/5' 
+            : 'border-[#1f2229] hover:border-[#2a2d36] border-l-4 border-l-[#3b82f6]'
+        }`}>
+          {/* Card Header */}
+          <div className="flex items-center justify-between gap-2 pb-3 mb-3.5 border-b border-[#1f2229]">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded bg-[#08090b] border border-[#2a2d36] flex items-center justify-center shrink-0 text-[#60a5fa] font-mono text-[10px] font-bold shadow-inner">
+                KC
+              </div>
+              <span className="text-xs font-mono font-semibold text-[#eef0f3]">KnowChain Engine</span>
+              {message.sourceCount > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#08090b] border border-[#2a2d36] rounded text-[10px] font-medium text-[#60a5fa] font-mono">
+                  {message.sourceCount} {message.sourceCount === 1 ? 'Source' : 'Sources'}
+                </span>
+              )}
+            </div>
+
+            <button 
+              onClick={handleCopy}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded text-[10px] font-mono font-medium border transition-all ${
+                copied 
+                  ? 'bg-[#34d399]/10 border-[#34d399]/30 text-[#34d399]' 
+                  : 'bg-[#08090b] border-[#2a2d36] text-[#9ca3af] hover:text-[#3b82f6] hover:border-[#3b82f6]/40'
+              }`}
+            >
+              {copied ? (
+                <>
+                  <HiCheck size={12} />
+                  <span>COPIED</span>
+                </>
+              ) : (
+                <>
+                  <HiOutlineDuplicate size={12} />
+                  <span>COPY</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Document Text Content with Styled Markdown */}
+          <div className={`text-sm leading-relaxed ${isError ? 'text-[#f87171]' : 'text-[#eef0f3]'}`}>
+            <ReactMarkdown 
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({node, children, ...rest}) => {
+                  const sources = message.sources || [];
+                  const processChildren = (kids) => {
+                    if (!Array.isArray(kids)) kids = [kids];
+                    return kids.map((child, i) => {
+                      if (typeof child === 'string') {
+                        const parts = child.split(/(\[Source\s*\d+\])/gi);
+                        if (parts.length > 1) {
+                          return parts.map((part, j) => {
+                            if (/^\[Source\s*\d+\]$/i.test(part)) {
+                              const num = parseInt(part.match(/\d+/)?.[0]);
+                              const src = sources.find(s => s.id === num);
+                              let href = src?.source || null;
+                              if (href && href.startsWith('uploads/')) {
+                                href = `${API_BASE_URL}/${href}`;
+                              }
+                              if (href) {
+                                return (
+                                  <a key={`${i}-${j}`} href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 bg-[#08090b] hover:bg-[#16181d] border border-[#2a2d36] hover:border-[#3b82f6] rounded text-[10px] font-semibold text-[#60a5fa] no-underline transition-all cursor-pointer font-mono">
+                                    <HiExternalLink className="text-[9px]" />{part}
+                                  </a>
+                                );
+                              }
+                              return (
+                                <span key={`${i}-${j}`} onClick={() => { document.getElementById(`source-ref-${message.id}`)?.scrollIntoView({ behavior: 'smooth' }); }} className="inline-flex items-center gap-1 px-1.5 py-0.5 mx-0.5 bg-[#08090b] hover:bg-[#16181d] border border-[#2a2d36] hover:border-[#3b82f6] rounded text-[10px] font-semibold text-[#60a5fa] cursor-pointer transition-all font-mono">
+                                  <HiExternalLink className="text-[9px]" />{part}
+                                </span>
+                              );
+                            }
+                            return part;
+                          });
+                        }
+                      }
+                      return child;
+                    });
+                  };
+                  return <p className="mb-3 last:mb-0 leading-relaxed block clear-both text-[#eef0f3]" {...rest}>{processChildren(children)}</p>;
+                },
+                h1: ({node, children, ...rest}) => (
+                  <h1 className="text-sm sm:text-base font-bold font-mono uppercase tracking-wider text-[#60a5fa] mt-4 mb-2 pb-1 border-b border-[#1f2229] flex items-center gap-2" {...rest}>
+                    <span className="w-2 h-2 rounded-full bg-[#3b82f6] inline-block shrink-0"></span>
+                    {children}
+                  </h1>
+                ),
+                h2: ({node, children, ...rest}) => (
+                  <h2 className="text-xs sm:text-sm font-bold font-mono uppercase tracking-wider text-[#60a5fa] mt-3.5 mb-2 flex items-center gap-2" {...rest}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] inline-block shrink-0"></span>
+                    {children}
+                  </h2>
+                ),
+                h3: ({node, children, ...rest}) => (
+                  <h3 className="text-xs font-bold font-mono uppercase tracking-wider text-[#60a5fa] mt-3 mb-1.5 flex items-center gap-2" {...rest}>
+                    <span className="w-1.5 h-1.5 rounded-sm bg-[#3b82f6] inline-block shrink-0"></span>
+                    {children}
+                  </h3>
+                ),
+                h4: ({node, children, ...rest}) => (
+                  <h4 className="text-[11px] font-bold font-mono uppercase tracking-wider text-[#60a5fa] mt-2.5 mb-1 flex items-center gap-2" {...rest}>
+                    {children}
+                  </h4>
+                ),
+                strong: ({node, children, ...rest}) => (
+                  <strong className="font-semibold text-[#eef0f3]" {...rest}>
+                    {children}
+                  </strong>
+                ),
+                ul: ({node, ...rest}) => <ul className="list-disc pl-5 my-2.5 space-y-1.5 text-[#eef0f3] clear-both" {...rest} />,
+                ol: ({node, ...rest}) => <ol className="list-decimal pl-5 my-2.5 space-y-1.5 text-[#eef0f3] clear-both" {...rest} />,
+                li: ({node, ...rest}) => <li className="leading-relaxed text-[#eef0f3] pl-0.5 my-0.5" {...rest} />,
+                img: ({node, ...rest}) => {
+                  const { alt, src, ...validProps } = rest;
+                  let imgSrc = src || '';
+                  if (imgSrc && !imgSrc.startsWith('http') && !imgSrc.startsWith('/')) {
+                    imgSrc = `${API_BASE_URL}/${imgSrc}`;
+                  }
+                  return (
+                    <span className="block clear-both my-3 w-full text-left">
+                      <img 
+                        {...validProps} 
+                        src={imgSrc}
+                        alt={alt || "Image"} 
+                        referrerPolicy="no-referrer"
+                        className="inline-block max-w-[220px] max-h-[160px] object-contain rounded-md border border-[#2a2d36] bg-[#08090b] p-1" 
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                      {alt && <span className="block text-[10px] text-[#6b7280] font-mono mt-1">{alt}</span>}
+                    </span>
+                  );
+                },
+                code: ({node, inline, className, children, ...rest}) => {
+                  const isBlock = className?.includes('language-');
+                  return isBlock ? (
+                    <div className="my-3 p-3 bg-[#08090b] border border-[#1f2229] rounded-md overflow-x-auto clear-both">
+                      <code {...rest} className={`text-xs font-mono text-[#60a5fa] ${className || ''}`}>
+                        {children}
+                      </code>
                     </div>
-                </div>
+                  ) : (
+                    <code {...rest} className="px-1.5 py-0.5 bg-[#08090b] border border-[#2a2d36] rounded text-[#60a5fa] font-mono text-xs">
+                      {children}
+                    </code>
+                  );
+                }
+              }}
+            >
+              {message.text}
+            </ReactMarkdown>
+          </div>
+
+          {/* Sources Citation Section */}
+          {message.sources && message.sources.length > 0 && (
+            <div id={`source-ref-${message.id}`} className="mt-4 pt-3 border-t border-[#1f2229] space-y-2 text-xs font-mono">
+              <span className="text-[10px] font-semibold text-[#6b7280] uppercase tracking-wider">Citations & References</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[...new Map(message.sources.map(s => [s.id, s])).values()].map(src => (
+                  <div key={src.id} className="flex items-center gap-2 p-2 bg-[#08090b] border border-[#1f2229] rounded-md hover:border-[#2a2d36] transition-all">
+                    <span className="shrink-0 px-1.5 py-0.5 bg-[#101216] border border-[#2a2d36] rounded text-[10px] text-[#60a5fa]">#{src.id}</span>
+                    {src.source ? (
+                      <a href={src.source.startsWith('http') ? src.source : `${API_BASE_URL}/${src.source}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#9ca3af] hover:text-[#3b82f6] truncate transition-colors flex items-center gap-1">
+                        <HiExternalLink size={11} className="shrink-0 text-[#6b7280]" />
+                        <span className="truncate">{src.source.replace(/^uploads\//, '')}</span>
+                      </a>
+                    ) : (
+                      <span className="text-xs text-[#9ca3af] truncate">{src.preview}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="w-9 h-9 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center shrink-0 mt-1 text-[#8A94A6]">
-                <HiOutlineUserCircle className="text-xl" />
-            </div>
+          )}
         </div>
+      </div>
     );
+  }
+
+  // User Message Bubble - Solid Blue Background (#3b82f6)
+  return (
+    <div className="flex gap-3 items-start justify-end animate-fade-in w-full max-w-4xl mx-auto my-4 group">
+      <div className="flex-1 max-w-[80%] sm:max-w-[70%] space-y-1">
+        <div className="flex items-center justify-end gap-2 pr-1">
+          <span className="text-[11px] font-mono text-[#6b7280]">You</span>
+          <button 
+            onClick={handleCopy}
+            className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono transition-all border ${
+              copied 
+                ? 'bg-[#34d399]/10 border-[#34d399]/30 text-[#34d399]' 
+                : 'bg-[#08090b] border-[#2a2d36] text-[#6b7280] hover:text-[#eef0f3] opacity-0 group-hover:opacity-100'
+            }`}
+          >
+            {copied ? <HiCheck size={11} /> : <HiOutlineDuplicate size={11} />}
+          </button>
+        </div>
+
+        <div className="bg-[#3b82f6] text-white rounded-xl p-3.5 shadow-md border border-[#3b82f6]/80">
+          <div className="text-sm leading-relaxed whitespace-pre-wrap font-sans">
+            {message.text}
+          </div>
+        </div>
+      </div>
+
+      <div className="w-7 h-7 rounded-lg bg-[#16181d] border border-[#2a2d36] flex items-center justify-center shrink-0 mt-5 text-[#9ca3af]">
+        <HiOutlineUser size={14} />
+      </div>
+    </div>
+  );
 }

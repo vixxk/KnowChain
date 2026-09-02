@@ -13,39 +13,53 @@ export default function ChatInput({ input, setInput, isLoading, isRewriting, han
   }, [input]);
 
   return (
-    <div className="absolute bottom-[108px] lg:bottom-10 left-0 right-0 px-3 lg:px-12 z-30">
+    <div className="absolute bottom-4 sm:bottom-6 left-0 right-0 px-4 sm:px-8 z-30">
       <div className="max-w-3xl mx-auto">
         <form onSubmit={handleSendMessage}>
-          <div className={`relative bg-[#0F141E]/95 backdrop-blur-sm border border-white/[0.08] rounded-[1.25rem] flex items-end p-1.5 lg:p-2 transition-all duration-300 ${activeCount > 0 ? 'shadow-2xl shadow-black/80 ring-1 ring-white/5' : 'opacity-80'}`}>
+          <div className={`relative bg-[#08090b] border border-[#2a2d36] focus-within:border-[#3b82f6] rounded-xl flex items-end p-2 transition-all ${
+            activeCount > 0 ? 'focus-within:ring-2 focus-within:ring-[#3b82f6]/20' : 'opacity-70'
+          }`}>
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(e); } }}
-              placeholder={isRewriting ? "AI is thinking..." : (activeCount > 0 ? "Query the Chain..." : (window.innerWidth < 640 ? "Select a unit..." : "Select a unit from Neural Feed..."))}
+              placeholder={isRewriting ? "Refining prompt..." : (activeCount > 0 ? "Query vector knowledge chain..." : "Select a unit from Neural Feed to query...")}
               disabled={isLoading || isRewriting || activeCount === 0}
-              className={`flex-1 bg-transparent border-none focus:ring-0 text-white placeholder-[#4A5568] px-3 lg:px-4 py-2.5 lg:py-3 resize-none max-h-36 text-[13px] lg:text-[14px] leading-relaxed outline-none overflow-y-auto scrollbar-hide ${activeCount === 0 || isRewriting ? 'cursor-not-allowed italic opacity-70' : ''}`}
+              className={`flex-1 bg-transparent border-0 outline-none focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 shadow-none focus:shadow-none text-[#eef0f3] placeholder-[#454952] px-3 py-2 resize-none max-h-36 text-xs sm:text-sm leading-relaxed font-mono ${activeCount === 0 || isRewriting ? 'cursor-not-allowed italic' : ''}`}
+              style={{ outline: 'none', boxShadow: 'none' }}
               rows="1"
             />
-            <div className="pb-2 flex items-center gap-2 lg:gap-4 px-2 lg:px-3">
-              <HiSparkles
-                onClick={handleManualRewrite}
-                className={`text-[18px] lg:text-[19px] cursor-pointer transition-all ${isRewriting ? 'text-[#38B28E] animate-spin-slow' : 'text-[#4A5568] hover:text-[#38B28E]'} ${activeCount === 0 || !input.trim() ? 'opacity-20 pointer-events-none' : ''}`}
-                title="Enhance Prompt"
-              />
+            <div className="pb-1.5 flex items-center gap-2 px-2">
+              <div className="relative flex items-center group">
+                <button
+                  type="button"
+                  onClick={handleManualRewrite}
+                  disabled={activeCount === 0 || !input.trim() || isRewriting}
+                  className={`p-1 rounded-md transition-all ${
+                    isRewriting 
+                      ? 'text-[#fbbf24]' 
+                      : 'text-[#6b7280] hover:text-[#60a5fa] hover:bg-[#16181d]'
+                  } ${activeCount === 0 || !input.trim() ? 'opacity-30 pointer-events-none' : 'cursor-pointer'}`}
+                >
+                  <HiSparkles className={`text-lg ${isRewriting ? 'animate-spin' : ''}`} />
+                </button>
+
+                {/* Custom Hover Description Tooltip */}
+                <div className="absolute bottom-full right-0 mb-2.5 hidden group-hover:flex items-center gap-1.5 px-2.5 py-1 bg-[#101216] border border-[#2a2d36] text-[#eef0f3] text-[11px] font-mono rounded-md shadow-xl whitespace-nowrap pointer-events-none z-50 animate-fade-in">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#3b82f6]"></span>
+                  <span>Rewrite Prompt</span>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={isLoading || isRewriting || !input.trim() || activeCount === 0}
-                className="text-[#D4AF37] hover:text-[#E8C84A] disabled:text-[#4A5568] transition-all disabled:opacity-30 p-1"
+                className="w-8 h-8 rounded-full btn-blue-primary text-white flex items-center justify-center transition-all disabled:opacity-30 disabled:pointer-events-none shrink-0"
               >
-                <FiSend className="text-[19px] lg:text-[20px]" />
+                <FiSend size={13} />
               </button>
             </div>
-          </div>
-          <div className="hidden sm:flex items-center justify-center gap-4 mt-2 px-4 translate-y-2">
-            <div className="w-[30%] h-[1px] bg-gradient-to-r from-transparent to-white/5"></div>
-            <div className="w-1 h-1 rounded-full bg-white/10"></div>
-            <div className="w-[30%] h-[1px] bg-gradient-to-l from-transparent to-white/5"></div>
           </div>
         </form>
       </div>

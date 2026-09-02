@@ -2,21 +2,20 @@ import MessageBubble from '../MessageBubble';
 
 export default function MessageList({ messages, isLoading, messagesEndRef }) {
   return (
-    <div className="space-y-10 pb-[180px] lg:pb-36">
+    <div className="space-y-6 pb-36">
       {messages.map(msg => (
         <MessageBubble key={msg.id} message={msg} />
       ))}
       {isLoading && (
-        <div className="flex gap-4 items-start animate-fade-in">
-          <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 border border-[#D4AF37]/20 flex items-center justify-center shrink-0 overflow-hidden shadow-lg shadow-black/20">
-            <img src="/favicon.png" className="w-6 h-6 object-contain animate-pulse" alt="Thinking" />
+        <div className="flex gap-3 items-start animate-fade-in py-4">
+          <div className="w-6 h-6 rounded bg-[#101216] border border-[#2a2d36] flex items-center justify-center shrink-0 text-[#60a5fa] font-mono text-[10px]">
+            KC
           </div>
-          <div className="bg-[#38B28E]/[0.06] border border-[#38B28E]/15 rounded-2xl rounded-tl-lg px-8 py-5">
-            <div className="flex gap-2">
-              <div className="w-2 h-2 bg-[#38B28E] rounded-full animate-bounce"></div>
-              <div className="w-2 h-2 bg-[#38B28E] rounded-full animate-bounce [animation-delay:0.15s]"></div>
-              <div className="w-2 h-2 bg-[#38B28E] rounded-full animate-bounce [animation-delay:0.3s]"></div>
-            </div>
+          <div className="flex gap-1.5 items-center py-1">
+            <div className="w-1.5 h-1.5 bg-[#3b82f6] rounded-full animate-bounce"></div>
+            <div className="w-1.5 h-1.5 bg-[#60a5fa] rounded-full animate-bounce [animation-delay:0.15s]"></div>
+            <div className="w-1.5 h-1.5 bg-[#93c5fd] rounded-full animate-bounce [animation-delay:0.3s]"></div>
+            <span className="text-xs font-mono text-[#6b7280] ml-2">Searching & Generating...</span>
           </div>
         </div>
       )}

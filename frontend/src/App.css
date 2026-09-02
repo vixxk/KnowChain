@@ -1,87 +1,326 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
-@theme {
-  --color-bg-deep: #0f172a;
-  --color-bg-darker: #020617;
-  --color-bg-card: rgba(30, 41, 59, 0.7);
-  --color-accent-blue: #3b82f6;
-  --color-accent-purple: #a855f7;
-  --color-accent-cyan: #22d3ee;
-  
-  --font-inter: "Inter", sans-serif;
-  --font-outfit: "Outfit", sans-serif;
-  
-  --radius-xl: 1rem;
-  --radius-2xl: 1.5rem;
-  
-  --shadow-premium: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+:root {
+  /* Backgrounds — cool near-black scale, NOT pure black */
+  --bg-canvas: #0a0b0d;        /* page background */
+  --bg-surface: #101216;       /* sidebar, panels */
+  --bg-surface-raised: #16181d; /* cards */
+  --bg-surface-hover: #1c1f26;
+  --bg-inset: #08090b;          /* input fields, code blocks */
+
+  /* Borders */
+  --border-subtle: #1f2229;
+  --border-default: #2a2d36;
+  --border-strong: #3a3e4a;
+
+  /* Text — grayscale only */
+  --text-primary: #eef0f3;
+  --text-secondary: #9ca3af;
+  --text-tertiary: #6b7280;
+  --text-disabled: #454952;
+
+  /* THE one accent color */
+  --blue-glow: #3b82f6;      /* primary actions, focus, brand */
+  --blue-bright: #60a5fa;    /* hover state, links */
+  --blue-dim: #1d4ed8;       /* pressed state */
+  --blue-wash: rgba(59, 130, 246, 0.10);   /* selected row bg */
+  --blue-border: rgba(59, 130, 246, 0.35); /* active border */
+
+  /* Semantic — used ONLY for status, never decoration */
+  --green-status: #34d399;   /* success dot, "SUCCESS" badge — desaturated */
+  --amber-status: #fbbf24;   /* warning, degraded metric */
+  --red-status: #f87171;     /* error, failed trace */
+
+  /* Charts */
+  --chart-1: #3b82f6;
+  --chart-2: #60a5fa;
+  --chart-3: #93c5fd;
+  --chart-grid: #1f2229;
+
+  --font-ui: "Inter", -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 }
 
-@utility glass-effect {
-  background-color: var(--color-bg-card);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: var(--shadow-premium);
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
 }
 
-@utility text-gradient {
-  background-image: linear-gradient(135deg, var(--color-accent-blue), var(--color-accent-purple));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+textarea:focus, textarea:focus-visible, input:focus, input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-@utility button-premium {
-  background-image: linear-gradient(135deg, var(--color-accent-blue), var(--color-accent-purple));
-  color: white;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+body {
+  overflow: hidden;
+  height: 100vh;
 }
 
-@layer base {
-  * {
-    @apply border-white/5;
-  }
-  
-  body {
-    background-color: var(--color-bg-deep);
-    color: #f8fafc;
-    font-family: var(--font-inter);
-    @apply antialiased overflow-x-hidden;
-  }
-
-  h1, h2, h3, h4 {
-    font-family: var(--font-outfit);
-    @apply tracking-tight font-bold;
-  }
-
-  /* Standardizing buttons from screenshot */
-  button {
-      @apply cursor-pointer transition-all active:scale-95;
-  }
+#root {
+  height: 100vh;
+  background-color: var(--bg-canvas);
 }
 
-/* Scrollbar */
+/* Typography Helpers */
+.font-mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.font-ui {
+  font-family: var(--font-ui);
+}
+
+/* Focus Ring Specification (§6) */
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg-canvas), 0 0 0 4px var(--blue-glow);
+}
+
+/* Base Panel & Card Containers */
+.tech-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+}
+
+.tech-card {
+  background-color: var(--bg-surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  transition: border-color 0.15s ease-out, background-color 0.15s ease-out;
+}
+
+.tech-card:hover {
+  border-color: var(--border-default);
+  background-color: var(--bg-surface-hover);
+}
+
+/* Primary Filled Blue CTA (§4.3, §5.1) */
+.btn-blue-primary {
+  background-color: var(--blue-glow);
+  color: #FFFFFF;
+  font-family: var(--font-ui);
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  transition: all 150ms ease-out;
+}
+
+.btn-blue-primary:hover {
+  background-color: var(--blue-bright);
+}
+
+.btn-blue-primary:active {
+  background-color: var(--blue-dim);
+  transform: scale(0.98);
+}
+
+/* Outlined Ghost / Secondary Buttons */
+.btn-ghost-outlined {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  transition: all 150ms ease-out;
+}
+
+.btn-ghost-outlined:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-hover);
+}
+
+/* Hero Score Subtle Radial Blue Glow (§5.2) */
+.hero-blue-glow {
+  position: relative;
+}
+
+.hero-blue-glow::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0) 70%);
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.15s ease-out forwards;
+}
+
+/* Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
+  height: 5px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #020617;
+  background: var(--bg-canvas);
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #64748b;
-  border-radius: 10px;
+  background: var(--border-default);
+  border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #3b82f6;
+  background: var(--border-strong);
 }
 
-@keyframes progress {
-  0% { width: 0; }
-  100% { width: 100%; }
+/* Animated High-Density Technical Canvas Background */
+.tech-bg-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-color: #0a0b0d;
+  overflow: hidden;
 }
 
-.animate-progress {
-  animation: progress 2s ease-in-out infinite;
+/* Subtle Technical Grid Matrix */
+.tech-grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 95%);
+  animation: gridDrift 20s linear infinite;
+}
+
+@keyframes gridDrift {
+  0% { background-position: 0 0; }
+  100% { background-position: 32px 32px; }
+}
+
+/* Drifting Ambient Blue Aurora Orb 1 */
+.aurora-orb-1 {
+  position: absolute;
+  top: -10%;
+  left: 15%;
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0) 70%);
+  filter: blur(50px);
+  border-radius: 50%;
+  animation: floatOrb1 14s ease-in-out infinite alternate;
+}
+
+/* Drifting Ambient Indigo Aurora Orb 2 */
+.aurora-orb-2 {
+  position: absolute;
+  bottom: -10%;
+  right: 15%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.09) 0%, rgba(99, 102, 241, 0) 70%);
+  filter: blur(60px);
+  border-radius: 50%;
+  animation: floatOrb2 18s ease-in-out infinite alternate;
+}
+
+/* Floating Orb Keyframes */
+@keyframes floatOrb1 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(80px, 60px, 0) scale(1.15); }
+  100% { transform: translate3d(-40px, 100px, 0) scale(0.95); }
+}
+
+@keyframes floatOrb2 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-90px, -70px, 0) scale(1.2); }
+  100% { transform: translate3d(50px, -110px, 0) scale(1); }
+}
+
+/* Subtle Technical Laser Scanline */
+.tech-scanline {
+  position: absolute;
+  top: -100px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.25), rgba(96, 165, 250, 0.4), rgba(59, 130, 246, 0.25), transparent);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+  animation: scanlineSweep 10s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes scanlineSweep {
+  0% { top: -20px; opacity: 0; }
+  5% { opacity: 0.8; }
+  95% { opacity: 0.8; }
+  100% { top: 105%; opacity: 0; }
+}
+
+/* Animated 4-Side Glowing Blue Border Beam */
+@keyframes spinBorderBeam {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.border-beam-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  padding: 1px;
+  background-color: #1f2229;
+}
+
+.border-beam-card::before {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    transparent 280deg,
+    rgba(59, 130, 246, 0.3) 310deg,
+    #3b82f6 335deg,
+    #60a5fa 350deg,
+    #93c5fd 357deg,
+    transparent 360deg
+  );
+  animation: spinBorderBeam 5s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.border-beam-card-slow::before {
+  animation-duration: 5s;
+}
+
+.border-beam-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  background-color: #0a0b0d;
+  border-radius: 11px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }

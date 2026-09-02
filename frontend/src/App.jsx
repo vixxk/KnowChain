@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import ChatInterface from './components/ChatInterface';
+import InfoDashboard from './components/InfoDashboard';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
@@ -10,7 +11,7 @@ import API_BASE_URL from './api/config';
 
 function App() {
 	const [sessions, setSessions] = useState(() => {
-		const saved = localStorage.getItem('knowchain_v2_sessions');
+		const saved = localStorage.getItem('knowchain_sessions') || localStorage.getItem('knowchain_v2_sessions');
 		if (saved) {
 			try {
 				const parsed = JSON.parse(saved);
@@ -27,9 +28,12 @@ function App() {
 	});
 	const [activeSessionId, setActiveSessionId] = useState(null);
 	const [isLoading, setIsLoading] = useState(false);
+	const [isChatLoading, setIsChatLoading] = useState(false);
 	const [appStatus, setAppStatus] = useState('initializing');
 	const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-	const [activeTab, setActiveTab] = useState('chat');
+	const [activeTab, setActiveTab] = useState(() => {
+		return window.location.pathname === '/evals' ? 'evals' : 'chat';
+	});
 	const [isNavVisible, setIsNavVisible] = useState(true);
 	const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -39,8 +43,20 @@ function App() {
 	const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
 	const [showUrl, setShowUrl] = useState(false);
 
+	useEffect(() => {
+		const handlePopState = () => {
+			if (window.location.pathname === '/evals') {
+				setActiveTab('evals');
+			} else {
+				setActiveTab('chat');
+			}
+		};
+		window.addEventListener('popstate', handlePopState);
+		return () => window.removeEventListener('popstate', handlePopState);
+	}, []);
+
 	const handleScroll = (e) => {
-		if (window.innerWidth >= 1024) return; // Ignore on desktop
+		if (window.innerWidth >= 1024) return;
 		const currentScrollY = e.target.scrollTop;
 		if (currentScrollY > lastScrollY && currentScrollY > 100) {
 			setIsNavVisible(false);
@@ -56,7 +72,7 @@ function App() {
 		else { startNewSession(); }
 	}, []);
 
-	useEffect(() => { localStorage.setItem('knowchain_v2_sessions', JSON.stringify(sessions)); }, [sessions]);
+	useEffect(() => { localStorage.setItem('knowchain_sessions', JSON.stringify(sessions)); }, [sessions]);
 	
 	useEffect(() => {
 		localStorage.setItem('knowchain_privacy_mode', privacyMode);
@@ -127,49 +143,75 @@ function App() {
 	const currentSession = sessions[activeSessionId] || null;
 
 	return (
-		<div className="h-screen flex bg-[#0B0E14] overflow-hidden">
-			<Sidebar 
-				activeTab={activeTab}
-				sessions={sessions}
-				setSessions={setSessions}
-				activeSessionId={activeSessionId}
-				setActiveSessionId={setActiveSessionId}
-				updateActiveSession={updateActiveSession}
-				cleanupSessionOnServer={cleanupSessionOnServer}
-				privacyMode={privacyMode}
-				customQdrantUrl={customQdrantUrl}
-			/>
+		<div className="h-screen flex bg-[#0a0b0d] overflow-hidden relative font-sans text-[#eef0f3]">
+			{/* Dark technical canvas animated background */}
+			<div className="tech-bg-canvas">
+				<div className="tech-grid-pattern" />
+				<div className="aurora-orb-1" />
+				<div className="aurora-orb-2" />
+				<div className="tech-scanline" />
+			</div>
 
-			<div className={`flex-1 flex flex-col min-w-0 p-3 lg:p-5 ${activeTab === 'chat' ? 'flex' : 'hidden lg:flex'}`}>
-				<div className="flex-1 flex flex-col bg-[#111720] border border-white/5 rounded-2xl lg:rounded-[1.25rem] overflow-hidden">
-					<Header 
-						privacyMode={privacyMode}
-						setPrivacyMode={setPrivacyMode}
-						customQdrantUrl={customQdrantUrl}
-						setCustomQdrantUrl={setCustomQdrantUrl}
-						showUrl={showUrl}
-						setShowUrl={setShowUrl}
-						setIsPrivacyModalOpen={setIsPrivacyModalOpen}
-						isHistoryOpen={isHistoryOpen}
-						setIsHistoryOpen={setIsHistoryOpen}
-						sessionList={sessionList}
-						isLoading={isLoading}
-						startNewSession={startNewSession}
-					/>
+			<div className="relative z-10 flex w-full h-full p-2 lg:p-3 gap-2 lg:gap-3 overflow-hidden">
+				<Sidebar 
+					activeTab={activeTab}
+					sessions={sessions}
+					setSessions={setSessions}
+					activeSessionId={activeSessionId}
+					setActiveSessionId={setActiveSessionId}
+					updateActiveSession={updateActiveSession}
+					cleanupSessionOnServer={cleanupSessionOnServer}
+					privacyMode={privacyMode}
+					customQdrantUrl={customQdrantUrl}
+				/>
 
-					<main className="flex-1 min-h-0">
-						<ChatInterface
-							key={activeSessionId}
-							sessionId={activeSessionId}
-							messages={currentSession?.messages || []}
-							setMessages={(msgs) => updateActiveSession(curr => ({ messages: typeof msgs === 'function' ? msgs(curr.messages) : msgs }))}
-							selectedCollections={currentSession?.selectedCollections || []}
-							setSelectedCollections={(cols) => updateActiveSession(curr => ({ selectedCollections: typeof cols === 'function' ? cols(curr.selectedCollections) : cols }))}
-							onScroll={handleScroll}
-							privacyMode={privacyMode}
-							customQdrantUrl={customQdrantUrl}
-						/>
-					</main>
+				<div className="flex-1 flex flex-col min-w-0 h-full">
+					{/* Main High-Density Tech Panel: Glowing Blue Border Beam ONLY when loading */}
+					<div className={`flex-1 flex flex-col h-full rounded-xl overflow-hidden relative transition-all ${
+						(isLoading || isChatLoading) 
+							? 'border-beam-card border-beam-card-slow' 
+							: 'bg-[#0a0b0d] border border-[#1f2229]'
+					}`}>
+						<div className={(isLoading || isChatLoading) ? "border-beam-inner bg-[#0a0b0d]" : "flex-1 flex flex-col min-h-0 h-full"}>
+							<Header 
+								activeTab={activeTab}
+								setActiveTab={setActiveTab}
+								privacyMode={privacyMode}
+								setPrivacyMode={setPrivacyMode}
+								customQdrantUrl={customQdrantUrl}
+								setCustomQdrantUrl={setCustomQdrantUrl}
+								showUrl={showUrl}
+								setShowUrl={setShowUrl}
+								setIsPrivacyModalOpen={setIsPrivacyModalOpen}
+								isHistoryOpen={isHistoryOpen}
+								setIsHistoryOpen={setIsHistoryOpen}
+								sessionList={sessionList}
+								isLoading={isLoading || isChatLoading}
+								startNewSession={startNewSession}
+							/>
+
+							<main className="flex-1 min-h-0 flex flex-col overflow-hidden relative">
+								<div key={activeTab} className="flex-1 flex flex-col min-h-0 h-full animate-view-switch">
+									{activeTab === 'evals' ? (
+										<InfoDashboard />
+									) : (
+										<ChatInterface
+											key={activeSessionId}
+											sessionId={activeSessionId}
+											messages={currentSession?.messages || []}
+											setMessages={(msgs) => updateActiveSession(curr => ({ messages: typeof msgs === 'function' ? msgs(curr.messages) : msgs }))}
+											selectedCollections={currentSession?.selectedCollections || []}
+											setSelectedCollections={(cols) => updateActiveSession(curr => ({ selectedCollections: typeof cols === 'function' ? cols(curr.selectedCollections) : cols }))}
+											onScroll={handleScroll}
+											privacyMode={privacyMode}
+											customQdrantUrl={customQdrantUrl}
+											onLoadingStateChange={setIsChatLoading}
+										/>
+									)}
+								</div>
+							</main>
+						</div>
+					</div>
 				</div>
 			</div>
 

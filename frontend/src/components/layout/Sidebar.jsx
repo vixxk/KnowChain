@@ -9,17 +9,21 @@ export default function Sidebar({
 	updateActiveSession, 
 	cleanupSessionOnServer, 
 	privacyMode, 
-	customQdrantUrl 
+	customQdrantUrl,
+	onLoadingStateChange
 }) {
+	// Hide sidebar completely when viewing Analytics / Evals page
+	if (activeTab === 'evals') return null;
+
 	return (
-		<aside className={`lg:flex flex-col w-full lg:w-[300px] shrink-0 bg-[#0F1319] lg:border-r border-white/5 overflow-hidden ${activeTab === 'feed' ? 'flex' : 'hidden'}`}>
-			<div className="flex items-center gap-3 px-6 h-[72px] shrink-0 border-b border-white/5">
-				<div className="w-9 h-9 bg-[#D4AF37]/10 rounded-xl flex items-center justify-center shadow-lg shadow-[#D4AF37]/5 border border-[#D4AF37]/20 overflow-hidden">
-					<img src="/favicon.png" alt="KnowChain v2" className="w-6 h-6 object-contain" />
+		<aside className={`flex-col w-full sm:w-[280px] md:w-[300px] lg:w-[320px] shrink-0 bg-[#101216] border border-[#1f2229] rounded-xl overflow-hidden z-10 transition-all ${activeTab === 'feed' ? 'flex' : 'hidden sm:flex'}`}>
+			<div className="flex items-center gap-3 px-5 h-[60px] shrink-0 border-b border-[#1f2229] bg-[#101216]">
+				<div className="w-7 h-7 bg-[#08090b] border border-[#2a2d36] rounded-lg flex items-center justify-center overflow-hidden">
+					<img src="/favicon.png" alt="KnowChain" className="w-full h-full object-cover" />
 				</div>
-				<span className="font-bold text-lg text-white">KnowChain v2</span>
+				<span className="font-bold text-sm tracking-tight text-[#eef0f3] font-mono">KnowChain</span>
 			</div>
-			<div className="flex-1 overflow-y-auto scrollbar-hide pb-20 lg:pb-0">
+			<div className="flex-1 overflow-y-auto pb-20 sm:pb-0">
 				<SessionManager
 					sessions={sessions} 
 					setSessions={setSessions}
@@ -29,6 +33,7 @@ export default function Sidebar({
 					cleanupSessionOnServer={cleanupSessionOnServer}
 					privacyMode={privacyMode} 
 					customQdrantUrl={customQdrantUrl}
+					onLoadingStateChange={onLoadingStateChange}
 				/>
 			</div>
 		</aside>
