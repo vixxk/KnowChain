@@ -56,6 +56,7 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
     const currentHistory = [...messages];
     setMessages(prev => [...prev, userMsg]);
     const q = input; setInput(''); setIsLoading(true);
+    const startTime = performance.now();
     try {
       const res = await fetch(`${API_BASE_URL}/chat/query`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -68,7 +69,34 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
         }),
       });
       const data = await res.json();
+      const endTime = performance.now();
+      const latencyMs = Math.round(endTime - startTime);
+
       if (!res.ok) throw new Error(data.error || 'Failed');
+      
+      // Calculate token count and cost estimate for user query
+      const promptTokens = Math.max(45, Math.round(q.length * 1.3 + 150));
+      const compTokens = Math.max(30, Math.round((data.answer?.length || 0) * 1.3));
+      const totalTokens = promptTokens + compTokens;
+      const costUsd = (((promptTokens / 1_000_000) * 0.90) + ((compTokens / 1_000_000) * 1.10)).toFixed(5);
+
+      const userTrace = {
+        id: `tr_${Date.now().toString(36).slice(-5)}`,
+        timestamp: new Date().toISOString(),
+        query: q,
+        latency_ms: latencyMs,
+        tokens: totalTokens,
+        cost_usd: costUsd,
+        status: 'SUCCESS'
+      };
+
+      try {
+        const stored = JSON.parse(localStorage.getItem('knowchain_user_traces') || '[]');
+        localStorage.setItem('knowchain_user_traces', JSON.stringify([userTrace, ...stored]));
+      } catch (e) {
+        console.error("Failed to save trace to localStorage:", e);
+      }
+
       setMessages(prev => [...prev, { id: Date.now() + 1, text: data.answer, sender: 'ai', sourceCount: selectedCollections.length, sources: data.sources || [] }]);
     } catch (err) {
       setMessages(prev => [...prev, { id: Date.now() + 1, text: err.message, sender: 'ai', isError: true }]);

@@ -50,11 +50,19 @@ export default function InfoDashboard() {
 		return 'text-[#f87171]';
 	};
 
-	const traceList = obs.recent_traces || [
+	const userTraces = (() => {
+		try {
+			return JSON.parse(localStorage.getItem('knowchain_user_traces') || '[]');
+		} catch (e) {
+			return [];
+		}
+	})();
+
+	const traceList = userTraces.length ? userTraces : (obs.recent_traces || [
 		{ id: 'tr_8f91a', query: 'What framework powers KnowChain v2?', latency_ms: 312, tokens: 1420, cost_usd: '0.00092', status: 'SUCCESS' },
 		{ id: 'tr_42b9c', query: 'What vector database stores embedding chunks?', latency_ms: 245, tokens: 980, cost_usd: '0.00064', status: 'SUCCESS' },
 		{ id: 'tr_19a4e', query: 'How is hybrid vector search calculated?', latency_ms: 389, tokens: 1850, cost_usd: '0.00118', status: 'SUCCESS' }
-	];
+	]);
 
 	const sampleList = samples.length ? samples : [
 		{ 
@@ -292,10 +300,25 @@ export default function InfoDashboard() {
 							<h2 className="text-xs sm:text-sm font-semibold text-[#eef0f3] font-mono">Live LangSmith Tracing Log</h2>
 							<p className="text-[10px] sm:text-xs text-[#6b7280] mt-0.5">Real-time pipeline execution, spans, latency and token costs</p>
 						</div>
-						<span className="px-2 py-0.5 bg-[#08090b] border border-[#2a2d36] text-[10px] font-mono rounded text-[#34d399] flex items-center gap-1.5">
-							<span className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-pulse"></span>
-							LIVE POLLING
-						</span>
+						<div className="flex items-center gap-2">
+							{userTraces.length > 0 && (
+								<button
+									onClick={() => {
+										if (window.confirm("Clear all recorded user query traces?")) {
+											localStorage.removeItem('knowchain_user_traces');
+											window.location.reload();
+										}
+									}}
+									className="px-2 py-0.5 bg-[#08090b] border border-[#2a2d36] hover:border-[#f87171] text-[10px] font-mono text-[#6b7280] hover:text-[#f87171] rounded transition-all"
+								>
+									CLEAR MY TRACES ({userTraces.length})
+								</button>
+							)}
+							<span className="px-2 py-0.5 bg-[#08090b] border border-[#2a2d36] text-[10px] font-mono rounded text-[#34d399] flex items-center gap-1.5">
+								<span className="w-1.5 h-1.5 rounded-full bg-[#34d399] animate-pulse"></span>
+								{userTraces.length > 0 ? "SESSION TRACES" : "LIVE POLLING"}
+							</span>
+						</div>
 					</div>
 
 					{/* Mobile Trace List (< 640px) */}

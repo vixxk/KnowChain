@@ -18,4 +18,16 @@ class Settings:
     CHAT_MODEL: str = os.getenv("CHAT_MODEL", "accounts/fireworks/models/deepseek-v4-pro-0813")
     EMBED_MODEL: str = "nomic-ai/nomic-embed-text-v1.5"
 
+    LANGCHAIN_TRACING_V2: str = os.getenv("LANGCHAIN_TRACING_V2", "true")
+    LANGCHAIN_ENDPOINT: str = os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")
+    LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY", "")
+    LANGCHAIN_PROJECT: str = os.getenv("LANGCHAIN_PROJECT", "knowchain-observability")
+
 settings = Settings()
+
+# Automatically set LangSmith environment variables for LangChain / LangGraph tracing
+if settings.LANGCHAIN_API_KEY:
+    os.environ["LANGCHAIN_TRACING_V2"] = settings.LANGCHAIN_TRACING_V2
+    os.environ["LANGCHAIN_ENDPOINT"] = settings.LANGCHAIN_ENDPOINT
+    os.environ["LANGCHAIN_API_KEY"] = settings.LANGCHAIN_API_KEY
+    os.environ["LANGCHAIN_PROJECT"] = settings.LANGCHAIN_PROJECT
