@@ -1,6 +1,6 @@
-# KnowChain Backend AWS EC2 Deployment Guide (Nginx + sslip.io + SSL)
+# KnowChain FastAPI Backend AWS EC2 Deployment Guide (Nginx + sslip.io + SSL)
 
-This guide provides step-by-step instructions for deploying the **KnowChain Express Backend** to an **AWS EC2** instance using **PM2**, **Nginx** as a reverse proxy, and **sslip.io** with **Certbot (Let's Encrypt)** for automated HTTPS/SSL configuration without requiring a custom domain.
+This guide provides step-by-step instructions for migrating from the legacy Node.js Express backend to the new **KnowChain Python FastAPI Backend (v2.0)** on an **AWS EC2** instance using **PM2**, **Nginx** as a reverse proxy, and **sslip.io** with **Certbot (Let's Encrypt)** for automated HTTPS/SSL configuration.
 
 ---
 
@@ -16,7 +16,7 @@ This guide provides step-by-step instructions for deploying the **KnowChain Expr
    [ Nginx Reverse Proxy ] 
           │ (HTTP - Port 5000)
           ▼
- [ PM2 (Node.js Express Backend) ]
+ [ PM2 -> Uvicorn (FastAPI + LangGraph Backend) ]
 ```
 
 ---
@@ -51,81 +51,83 @@ In the AWS EC2 Console, navigate to **Security Groups** for your instance and en
    ssh -i /path/to/your-key.pem ubuntu@<YOUR_EC2_PUBLIC_IP>
    ```
 
-2. Update system packages:
+2. Update system packages and install Python 3, venv & PM2:
    ```bash
    sudo apt update && sudo apt upgrade -y
+   sudo apt install -y python3 python3-pip python3-venv build-essential git curl
    ```
 
-3. Install Node.js (v20.x LTS) and essential build tools:
+3. Install Node.js (v20.x LTS) and **PM2** (used for process management):
    ```bash
    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-   sudo apt install -y nodejs build-essential git
-   ```
-
-4. Verify Node.js and NPM installation:
-   ```bash
-   node -v
-   npm -v
-   ```
-
-5. Install **PM2** globally:
-   ```bash
+   sudo apt install -y nodejs
    sudo npm install -g pm2
    ```
 
 ---
 
-## Step 3: Deploy Backend Application Code
+## Step 3: Remove Old Node.js Backend & Deploy FastAPI Backend
 
-1. Clone your project repository or copy your backend directory to the EC2 server:
+1. Stop and remove the legacy Node.js process from PM2:
    ```bash
-   cd /home/ubuntu
-   git clone <YOUR_GIT_REPOSITORY_URL> knowchain
-   cd knowchain/backend
+   pm2 stop knowchain-backend || true
+   pm2 delete knowchain-backend || true
+   pm2 save
    ```
 
-2. Install backend production dependencies:
+2. Pull latest code from GitHub:
    ```bash
-   npm install --omit=dev --legacy-peer-deps
+   cd /home/ubuntu/knowchain || cd /home/ubuntu/KnowChain
+   git stash
+   git pull origin main || git pull origin master
    ```
 
-3. Create the `.env` file in the `backend` directory:
+3. Navigate to `backend_fastapi` and set up Python Virtual Environment (`venv`):
+   ```bash
+   cd backend_fastapi
+   python3 -m venv venv
+   ./venv/bin/pip install --upgrade pip
+   ./venv/bin/pip install -r requirements.txt
+   ```
+
+4. Create the `.env` configuration file:
    ```bash
    nano .env
    ```
 
-4. Paste your environment variables (adjust values accordingly):
+5. Paste your environment variables (adjust values accordingly):
    ```env
    PORT=5000
-   NODE_ENV=production
-   OPENAI_API_KEY=your_openai_api_key
-   GEMINI_API_KEY=your_gemini_api_key
-   QDRANT_URL=your_qdrant_instance_url
+   FIREWORKS_API_KEY=your_fireworks_api_key
+   QDRANT_URL=your_qdrant_url
    QDRANT_API_KEY=your_qdrant_api_key
+   LANGCHAIN_TRACING_V2=true
+   LANGCHAIN_API_KEY=your_langsmith_api_key
+   LANGCHAIN_PROJECT=knowchain-observability
    ```
    *(Save and exit `nano`: press `Ctrl + O`, `Enter`, then `Ctrl + X`)*.
 
 ---
 
-## Step 4: Start Backend with PM2
+## Step 4: Start FastAPI Backend with PM2
 
-1. Start the Node.js server using PM2 with IPv4 DNS ordering flag:
+1. Start Uvicorn / FastAPI server using PM2:
    ```bash
-   pm2 start server.js --name "knowchain-backend" --node-args="--dns-result-order=ipv4first"
+   pm2 start "venv/bin/uvicorn main:app --host 0.0.0.0 --port 5000" --name "knowchain-fastapi"
    ```
 
-2. Verify that the application is running:
+2. Verify that the FastAPI backend is online:
    ```bash
    pm2 status
-   pm2 logs knowchain-backend --lines 20
+   pm2 logs knowchain-fastapi --lines 20
    ```
 
-3. Configure PM2 to restart automatically on system reboot:
+3. Save PM2 state for automatic reboot recovery:
    ```bash
    pm2 save
    pm2 startup
    ```
-   *(Copy and run the command output provided by `pm2 startup` if prompted).*
+   *(Run the output command provided by `pm2 startup` if prompted).*
 
 ---
 
@@ -285,10 +287,18 @@ jobs:
             git stash
             git pull origin main || git pull origin master
             
-            # Navigate to backend, install deps with legacy-peer-deps, and restart PM2
-            cd backend
-            npm install --omit=dev --legacy-peer-deps
-            pm2 restart knowchain-backend || pm2 start server.js --name "knowchain-backend" --node-args="--dns-result-order=ipv4first"
+            # Stop & cleanup legacy Node.js PM2 backend process if active
+            pm2 stop knowchain-backend || true
+            pm2 delete knowchain-backend || true
+
+            # Navigate to backend_fastapi, activate virtualenv and install dependencies
+            cd backend_fastapi
+            python3 -m venv venv
+            ./venv/bin/pip install --upgrade pip
+            ./venv/bin/pip install -r requirements.txt
+
+            # Restart or start PM2 process for FastAPI server
+            pm2 restart knowchain-fastapi || pm2 start "venv/bin/uvicorn main:app --host 0.0.0.0 --port 5000" --name "knowchain-fastapi"
             pm2 save
 ```
 

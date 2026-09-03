@@ -25,8 +25,16 @@ jobs:
             git stash
             git pull origin main || git pull origin master
             
-            # Navigate to backend, install deps with legacy peer deps, and restart PM2
-            cd backend
-            npm install --omit=dev --legacy-peer-deps
-            pm2 restart knowchain-backend || pm2 start server.js --name "knowchain-backend" --node-args="--dns-result-order=ipv4first"
+            # Stop & cleanup legacy Node.js PM2 backend process if active
+            pm2 stop knowchain-backend || true
+            pm2 delete knowchain-backend || true
+            
+            # Navigate to backend_fastapi, activate virtualenv and install dependencies
+            cd backend_fastapi
+            python3 -m venv venv
+            ./venv/bin/pip install --upgrade pip
+            ./venv/bin/pip install -r requirements.txt
+            
+            # Restart or start PM2 process for FastAPI server
+            pm2 restart knowchain-fastapi || pm2 start "venv/bin/uvicorn main:app --host 0.0.0.0 --port 5000" --name "knowchain-fastapi"
             pm2 save
