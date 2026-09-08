@@ -4,11 +4,12 @@ import time
 import random
 import string
 from typing import Optional, List, Dict, Any
+import json
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel
 
-from app.graph.rag_graph import run_rag_pipeline
+from app.graph.rag_graph import run_rag_pipeline, stream_rag_pipeline
 from app.utils.ai import rewrite_query
 from app.indexers.web import web_indexer
 from app.indexers.pdf import pdf_indexer
@@ -29,6 +30,7 @@ class ChatQueryRequest(BaseModel):
     rewrite: Optional[bool] = False
     history: Optional[List[Dict[str, Any]]] = []
     qdrantUrl: Optional[str] = None
+    stream: Optional[bool] = False
 
 class RewriteRequest(BaseModel):
     query: Optional[str] = None
@@ -60,6 +62,34 @@ async def unified_chat(req: ChatQueryRequest):
             content={"error": "Query is required."}
         )
 
+    # Handle streaming response
+    if req.stream:
+        async def event_stream():
+            try:
+                async for event in stream_rag_pipeline(
+                    query=req.query,
+                    collection_name=req.collectionName,
+                    collection_names=collections,
+                    rewrite=bool(req.rewrite),
+                    history=req.history or [],
+                    qdrant_url=req.qdrantUrl
+                ):
+                    yield f"data: {json.dumps(event)}\n\n"
+            except Exception as e:
+                print(f"[ChatStreamError] {e}")
+                err_data = {"type": "error", "error": "Something went wrong processing your query. Please try again."}
+                yield f"data: {json.dumps(err_data)}\n\n"
+
+        return StreamingResponse(
+            event_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
+
     try:
         result = await run_rag_pipeline(
             query=req.query,
@@ -73,7 +103,8 @@ async def unified_chat(req: ChatQueryRequest):
         return {
             "answer": result.get("answer", ""),
             "rewrittenQuery": result.get("rewritten_query") if req.rewrite else None,
-            "chunksFound": result.get("chunks_found", 0)
+            "chunksFound": result.get("chunks_found", 0),
+            "sources": result.get("sources", [])
         }
     except Exception as e:
         print(f"[ChatError] {e}")
@@ -82,7 +113,13 @@ async def unified_chat(req: ChatQueryRequest):
             content={"error": "Something went wrong processing your query. Please try again."}
         )
 
+@router.post("/stream")
+async def stream_chat_alias(req: ChatQueryRequest):
+    req.stream = True
+    return await unified_chat(req)
+
 @router.post("/rewrite")
+
 async def rewrite_endpoint(req: RewriteRequest):
     if not req.query:
         return JSONResponse(

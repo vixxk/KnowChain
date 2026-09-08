@@ -87,7 +87,7 @@ def generate_pdf(results):
     now = datetime.datetime.now().strftime("%B %d, %Y at %I:%M %p")
     pdf.cell(0, 6, f"Report Generated: {now}", new_x="LMARGIN", new_y="NEXT")
     pdf.cell(0, 6, f"Test Dataset: {n} human-crafted questions across 2 document types", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 6, "LLM Judge: Fireworks AI Qwen3-8B | RAG Backend: KnowChain v2.0", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, "LLM Judge: Fireworks AI Qwen3-8B | RAG Backend: KnowChain", new_x="LMARGIN", new_y="NEXT")
     pdf.cell(0, 6, "Evaluation Framework: RAGAS-aligned (Faithfulness, Relevancy, Correctness)", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)
 

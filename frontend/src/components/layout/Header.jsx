@@ -27,13 +27,13 @@ export default function Header({
 				<div className="flex items-center gap-2">
 					<button 
 						onClick={() => setPrivacyMode(!privacyMode)}
-						className={`group flex items-center gap-2 px-2.5 py-1 rounded-md transition-all border text-xs font-mono ${
+						className={`group flex items-center gap-2 px-2.5 py-1 rounded-md transition-all border text-xs font-mono cursor-pointer ${
 							privacyMode 
-								? 'bg-[#3b82f6]/10 border-[#3b82f6]/50 text-[#60a5fa] opacity-100 shadow-[0_0_12px_rgba(59,130,246,0.15)]' 
-								: 'bg-[#08090b]/40 border-[#1f2229]/60 text-[#6b7280] opacity-50 hover:opacity-90 hover:text-[#9ca3af] hover:border-[#2a2d36]'
+								? 'bg-[#3b82f6]/10 border-[#3b82f6]/50 text-[#60a5fa] shadow-[0_0_12px_rgba(59,130,246,0.15)]' 
+								: 'bg-[#08090b] border-[#2a2d36] text-[#eef0f3] hover:text-[#60a5fa] hover:border-[#3b82f6]/40 hover:bg-[#101216]'
 						}`}
 					>
-						<HiShieldCheck className={privacyMode ? 'text-[#3b82f6]' : 'text-[#454952]'} size={15} />
+						<HiShieldCheck className={privacyMode ? 'text-[#3b82f6]' : 'text-[#9ca3af] group-hover:text-[#60a5fa] transition-colors'} size={15} />
 						<span className="text-[11px] uppercase tracking-wider font-semibold">
 							{privacyMode ? 'Privacy Mode On' : 'Privacy Mode Off'}
 						</span>

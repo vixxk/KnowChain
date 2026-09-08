@@ -7,7 +7,7 @@ import { OpenAIEmbeddings } from "@langchain/openai";
 import { QdrantVectorStore } from "@langchain/qdrant";
 import dotenv from "dotenv";
 import { throttleRequest, forceBackoff } from "./throttle.js";
-console.log("🛠️ Indexers module loaded [VERSION 2.0]");
+console.log("🛠️ Indexers module loaded");
 
 const FIREWORKS_API_KEY = process.env.FIREWORKS_API_KEY;
 const FW_BASE_URL = "https://api.fireworks.ai/inference/v1";

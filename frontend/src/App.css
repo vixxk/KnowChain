@@ -324,3 +324,332 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* ==========================================================================
+   Cyber Intelligence Message Boxes & Streaming Cursor
+   ========================================================================== */
+
+/* Blinking Terminal Cursor */
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 4px rgba(96, 165, 250, 0.8)); }
+  50% { opacity: 0.15; filter: none; }
+}
+
+.streaming-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 15px;
+  background-color: #60a5fa;
+  margin-left: 4px;
+  vertical-align: -2px;
+  border-radius: 1px;
+  animation: cursorBlink 0.75s infinite ease-in-out;
+}
+
+/* Shimmer Scanning Line for Active Neural Synthesis */
+@keyframes streamScanner {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.tech-scanning-bar {
+  position: relative;
+  overflow: hidden;
+}
+
+.tech-scanning-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.9), transparent);
+  animation: streamScanner 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Futuristic User Message Capsule */
+.user-msg-capsule {
+  position: relative;
+  background: linear-gradient(145deg, rgba(29, 78, 216, 0.22) 0%, rgba(15, 23, 42, 0.8) 45%, rgba(17, 24, 39, 0.9) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  box-shadow: 0 4px 20px -2px rgba(29, 78, 216, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px 4px 16px 16px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.user-msg-capsule:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+  box-shadow: 0 6px 24px -2px rgba(37, 99, 235, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* Top Right Chamfer Angle Badge */
+.user-corner-notch {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  border-top: 2px solid #3b82f6;
+  border-right: 2px solid #3b82f6;
+  border-top-right-radius: 4px;
+  pointer-events: none;
+}
+
+/* Neural Core AI HUD Box */
+.ai-hud-box {
+  position: relative;
+  background: linear-gradient(180deg, rgba(16, 20, 28, 0.92) 0%, rgba(10, 12, 16, 0.98) 100%);
+  border: 1px solid rgba(42, 45, 54, 0.85);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.7), 0 0 20px -4px rgba(59, 130, 246, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 14px;
+  transition: all 0.25s ease-out;
+}
+
+.ai-hud-box:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.8), 0 0 24px -4px rgba(59, 130, 246, 0.12);
+}
+
+/* AI HUD Tech Corner Markers */
+.ai-hud-box::before,
+.ai-hud-box::after {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
+.ai-hud-box:hover::before,
+.ai-hud-box:hover::after {
+  opacity: 1;
+}
+
+.ai-hud-box::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid #3b82f6;
+  border-left: 2px solid #3b82f6;
+  border-top-left-radius: 4px;
+}
+
+.ai-hud-box::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid #60a5fa;
+  border-right: 2px solid #60a5fa;
+  border-bottom-right-radius: 4px;
+}
+
+/* Top Ambient Shimmer Bar */
+.ai-hud-top-beam {
+  position: absolute;
+  top: 0;
+  left: 24px;
+  right: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.7), rgba(96, 165, 250, 0.9), rgba(59, 130, 246, 0.7), transparent);
+  filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.6));
+}
+
+/* Tech Code Block Terminal Chrome */
+.code-terminal-wrapper {
+  background: #07080a;
+  border: 1px solid #1f2229;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.code-terminal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background: #0d0f14;
+  border-bottom: 1px solid #1a1c23;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* Citation Pill Badge */
+.citation-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: rgba(16, 20, 28, 0.9);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: #60a5fa;
+  transition: all 0.15s ease-out;
+}
+
+.citation-chip:hover {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: #60a5fa;
+  color: #93c5fd;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+}
+
+/* ==========================================================================
+   HERO SECTION SPECIAL EFFECTS BACKGROUND (§Portfolio Aesthetic)
+   ========================================================================== */
+
+.hero-bg-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  user-select: none;
+}
+
+/* Tech Cyber Perspective Grid */
+.hero-grid-layer {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(59, 130, 246, 0.22) 1.2px, transparent 0),
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px, 64px 64px, 64px 64px;
+  background-position: 0 0, 0 0, 0 0;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, #000 20%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse 75% 65% at 50% 40%, #000 20%, transparent 85%);
+  opacity: 0.85;
+}
+
+/* Top Horizon Beam & Radiant Flare */
+.hero-horizon-beam {
+  position: absolute;
+  top: 0;
+  left: 8%;
+  right: 8%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.6), rgba(96, 165, 250, 0.95), rgba(139, 92, 246, 0.6), transparent);
+  filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.85));
+}
+
+.hero-top-flare {
+  position: absolute;
+  top: -90px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 580px;
+  height: 220px;
+  background: radial-gradient(ellipse at 50% 30%, rgba(59, 130, 246, 0.28) 0%, rgba(139, 92, 246, 0.12) 45%, transparent 70%);
+  filter: blur(48px);
+}
+
+/* Dynamic Interactive Mouse Spotlight */
+.hero-mouse-spotlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease-out;
+}
+
+/* Floating Cosmic Aurora Plasma Orbs */
+.hero-aurora-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.65;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.hero-aurora-1 {
+  top: 10%;
+  left: 15%;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.32) 0%, rgba(59, 130, 246, 0.14) 50%, transparent 75%);
+  animation: heroAuroraFloat1 50s ease-in-out infinite alternate;
+}
+
+.hero-aurora-2 {
+  top: 35%;
+  right: 8%;
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.25) 0%, rgba(147, 51, 234, 0.1) 50%, transparent 75%);
+  animation: heroAuroraFloat2 65s ease-in-out infinite alternate;
+}
+
+.hero-aurora-3 {
+  bottom: 8%;
+  left: 30%;
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.22) 0%, rgba(37, 99, 235, 0.1) 50%, transparent 75%);
+  animation: heroAuroraFloat3 42s ease-in-out infinite alternate;
+}
+
+/* Compact Aurora & Flare Variants for Narrow Elements (e.g. Sidebar) */
+.hero-top-flare-compact {
+  width: 340px;
+  height: 150px;
+  top: -65px;
+}
+
+.hero-aurora-compact-1 {
+  top: 6%;
+  left: -15%;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.28) 0%, rgba(59, 130, 246, 0.12) 50%, transparent 75%);
+  animation: heroAuroraFloat1 45s ease-in-out infinite alternate;
+}
+
+.hero-aurora-compact-2 {
+  top: 42%;
+  right: -25%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.22) 0%, rgba(147, 51, 234, 0.08) 50%, transparent 75%);
+  animation: heroAuroraFloat2 55s ease-in-out infinite alternate;
+}
+
+.hero-aurora-compact-3 {
+  bottom: 4%;
+  left: -10%;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, rgba(37, 99, 235, 0.08) 50%, transparent 75%);
+  animation: heroAuroraFloat3 38s ease-in-out infinite alternate;
+}
+
+
+@keyframes heroAuroraFloat1 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(25px, 18px) scale(1.06); }
+  100% { transform: translate(-18px, 28px) scale(0.97); }
+}
+
+@keyframes heroAuroraFloat2 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-28px, -20px) scale(1.05); }
+  100% { transform: translate(20px, 22px) scale(0.96); }
+}
+
+@keyframes heroAuroraFloat3 {
+  0% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-20px, -15px) scale(1.08); }
+  100% { transform: translate(22px, -12px) scale(0.95); }
+}
+
+

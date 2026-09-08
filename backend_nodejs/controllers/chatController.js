@@ -207,7 +207,7 @@ export async function unifiedChatController(req, res) {
 
     const fwClient = new OpenAI({ apiKey: FIREWORKS_API_KEY, baseURL: FW_BASE_URL });
 
-    const SYSTEM_PROMPT = `You are KnowChain AI v2.0, a professional intelligence assistant.
+    const SYSTEM_PROMPT = `You are KnowChain AI, a professional intelligence assistant.
 
 CORE PERSONALITY:
 - Be helpful, conversational, and precise.

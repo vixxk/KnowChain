@@ -45,4 +45,4 @@ const sessionTimeout = new Map();
 const SESSION_DURATION = 10 * 60 * 1000; // 10 minutes
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT} [VERSION 2.0]`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

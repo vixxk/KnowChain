@@ -54,5 +54,5 @@ async def health():
 
 if __name__ == "__main__":
     port = settings.PORT
-    print(f"🚀 Server running on port {port} [VERSION 2.0 - FastAPI LangGraph]")
+    print(f"🚀 Server running on port {port} [FastAPI LangGraph]")
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

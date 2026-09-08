@@ -7,15 +7,13 @@ export default function MessageList({ messages, isLoading, messagesEndRef }) {
         <MessageBubble key={msg.id} message={msg} />
       ))}
       {isLoading && (
-        <div className="flex gap-3 items-start animate-fade-in py-4">
-          <div className="w-6 h-6 rounded bg-[#101216] border border-[#2a2d36] flex items-center justify-center shrink-0 text-[#60a5fa] font-mono text-[10px]">
+        <div className="flex gap-3 items-center animate-fade-in py-2.5 px-3.5 rounded-lg bg-[#101216]/80 border border-[#2a2d36] w-fit max-w-md my-3 tech-scanning-bar">
+          <div className="w-5 h-5 rounded bg-[#08090b] border border-[#3b82f6]/50 flex items-center justify-center shrink-0 text-[#60a5fa] font-mono text-[9px] font-bold shadow-inner">
             KC
           </div>
-          <div className="flex gap-1.5 items-center py-1">
-            <div className="w-1.5 h-1.5 bg-[#3b82f6] rounded-full animate-bounce"></div>
-            <div className="w-1.5 h-1.5 bg-[#60a5fa] rounded-full animate-bounce [animation-delay:0.15s]"></div>
-            <div className="w-1.5 h-1.5 bg-[#93c5fd] rounded-full animate-bounce [animation-delay:0.3s]"></div>
-            <span className="text-xs font-mono text-[#6b7280] ml-2">Searching & Generating...</span>
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#60a5fa] animate-ping" />
+            <span className="text-xs font-mono text-[#9ca3af]">Scanning Neural Lattice & Retrieving Vectors...</span>
           </div>
         </div>
       )}
@@ -23,3 +21,4 @@ export default function MessageList({ messages, isLoading, messagesEndRef }) {
     </div>
   );
 }
+

@@ -54,7 +54,7 @@ export default function SessionManager({ sessions, setSessions, activeSessionId,
                     <HiOutlineDatabase className="text-[#3b82f6]" size={13} />
                     <span>Sync Unit</span>
                 </h3>
-                <div className="tech-card p-3">
+                <div className="tech-card p-3 bg-[#101216]/60 backdrop-blur-md border border-[#1f2229]/80">
                     <DocumentUpload 
                         sessionId={sessionId} 
                         onDocumentAdded={addDocument} 
@@ -70,12 +70,12 @@ export default function SessionManager({ sessions, setSessions, activeSessionId,
                     <h3 className="text-[11px] font-semibold text-[#6b7280] uppercase tracking-wider font-mono">
                         Neural Feed
                     </h3>
-                    <span className="px-2 py-0.5 bg-[#08090b] border border-[#1f2229] rounded text-[10px] text-[#9ca3af] font-mono">
+                    <span className="px-2 py-0.5 bg-[#08090b]/80 backdrop-blur-sm border border-[#1f2229] rounded text-[10px] text-[#9ca3af] font-mono">
                         {selectedCollections.length}/{documents.length} ACTIVE
                     </span>
                 </div>
 
-                <div className="bg-[#16181d] border border-[#1f2229] rounded-lg p-2.5 space-y-2">
+                <div className="bg-[#101216]/60 backdrop-blur-md border border-[#1f2229]/80 rounded-lg p-2.5 space-y-2">
                     {documents.length > 0 && (
                         <div className="flex items-center justify-between px-1 pb-2 border-b border-[#1f2229]">
                             <button
@@ -113,8 +113,8 @@ export default function SessionManager({ sessions, setSessions, activeSessionId,
                                     key={doc.id} 
                                     className={`flex items-center gap-2.5 p-2 rounded-md transition-all group cursor-pointer ${
                                         sel 
-                                            ? 'bg-[#3b82f6]/10 border-l-2 border-l-[#3b82f6] border-t border-r border-b border-t-[#2a2d36] border-r-[#2a2d36] border-b-[#2a2d36]' 
-                                            : 'bg-[#101216] border border-[#1f2229] hover:bg-[#1c1f26] hover:border-[#2a2d36]'
+                                            ? 'bg-[#3b82f6]/15 border-l-2 border-l-[#3b82f6] border-t border-r border-b border-t-[#2a2d36] border-r-[#2a2d36] border-b-[#2a2d36] backdrop-blur-sm shadow-[0_0_12px_rgba(59,130,246,0.12)]' 
+                                            : 'bg-[#0d0f13]/60 backdrop-blur-sm border border-[#1f2229]/70 hover:bg-[#1c1f26]/70 hover:border-[#2a2d36]'
                                     }`}
                                 >
                                     <button

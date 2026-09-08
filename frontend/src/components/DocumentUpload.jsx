@@ -13,32 +13,26 @@ export default function DocumentUpload({ sessionId, onDocumentAdded, privacyMode
     const fileInputRef = useRef(null);
 
     const qdrantUrl = privacyMode ? customQdrantUrl : null;
-    const ONE_REVOLUTION_MS = 5000;
 
-    const startProcessingWithMinRevolution = (type) => {
+    const startProcessing = (type) => {
         setIsUploading(true);
         setUploadType(type);
         setUploadStatus(null);
         if (onLoadingStateChange) onLoadingStateChange(true);
-        return Date.now();
     };
 
-    const finishProcessingWithMinRevolution = (startTime, completionFn) => {
-        const elapsed = Date.now() - startTime;
-        const remaining = Math.max(0, ONE_REVOLUTION_MS - elapsed);
-        setTimeout(() => {
-            setIsUploading(false);
-            setUploadType(null);
-            if (onLoadingStateChange) onLoadingStateChange(false);
-            if (completionFn) completionFn();
-        }, remaining);
+    const finishProcessing = (completionFn) => {
+        setIsUploading(false);
+        setUploadType(null);
+        if (onLoadingStateChange) onLoadingStateChange(false);
+        if (completionFn) completionFn();
     };
 
     const handleFileUpload = async (file) => {
         if (!file || file.type !== 'application/pdf') { setUploadStatus({ type: 'error', message: 'PDF only.' }); return; }
         if (privacyMode && !customQdrantUrl) { setUploadStatus({ type: 'error', message: 'Set Qdrant URL first.' }); return; }
         
-        const startTime = startProcessingWithMinRevolution('pdf');
+        startProcessing('pdf');
         const formData = new FormData(); 
         formData.append('file', file); 
         formData.append('sessionId', sessionId);
@@ -47,12 +41,12 @@ export default function DocumentUpload({ sessionId, onDocumentAdded, privacyMode
         try {
             const res = await axios.post(`${API_BASE_URL}/chat/index/pdf`, formData);
             onDocumentAdded({ name: file.name, type: 'pdf', size: (file.size / 1024 / 1024).toFixed(2) + ' MB', collection: res.data.collectionName });
-            finishProcessingWithMinRevolution(startTime, () => {
+            finishProcessing(() => {
                 setUploadStatus({ type: 'success', message: 'Synced.' }); 
                 setTimeout(() => setUploadStatus(null), 3000);
             });
         } catch (e) { 
-            finishProcessingWithMinRevolution(startTime, () => {
+            finishProcessing(() => {
                 setUploadStatus({ type: 'error', message: e.response?.data?.error || 'Failed.' }); 
             });
         }
@@ -62,17 +56,17 @@ export default function DocumentUpload({ sessionId, onDocumentAdded, privacyMode
         e.preventDefault(); if (!urlInput.trim() || isUploading) return;
         if (privacyMode && !customQdrantUrl) { setUploadStatus({ type: 'error', message: 'Set Qdrant URL first.' }); return; }
         
-        const startTime = startProcessingWithMinRevolution('web');
+        startProcessing('web');
         try {
             const res = await axios.post(`${API_BASE_URL}/chat/index/web`, { url: urlInput, sessionId, qdrantUrl });
             onDocumentAdded({ name: new URL(urlInput).hostname, type: 'web', collection: res.data.collectionName });
             setUrlInput(''); 
-            finishProcessingWithMinRevolution(startTime, () => {
+            finishProcessing(() => {
                 setUploadStatus({ type: 'success', message: 'Linked.' }); 
                 setTimeout(() => setUploadStatus(null), 3000);
             });
         } catch (e) { 
-            finishProcessingWithMinRevolution(startTime, () => {
+            finishProcessing(() => {
                 setUploadStatus({ type: 'error', message: e.response?.data?.error || 'Failed.' }); 
             });
         }
@@ -82,17 +76,17 @@ export default function DocumentUpload({ sessionId, onDocumentAdded, privacyMode
         e.preventDefault(); if (!textInput.trim() || isUploading) return;
         if (privacyMode && !customQdrantUrl) { setUploadStatus({ type: 'error', message: 'Set Qdrant URL first.' }); return; }
         
-        const startTime = startProcessingWithMinRevolution('text');
+        startProcessing('text');
         try {
             const res = await axios.post(`${API_BASE_URL}/chat/index/text`, { text: textInput, sessionId, qdrantUrl });
             onDocumentAdded({ name: 'Snippet ' + new Date().toLocaleTimeString(), type: 'text', collection: res.data.collectionName });
             setTextInput(''); 
-            finishProcessingWithMinRevolution(startTime, () => {
+            finishProcessing(() => {
                 setUploadStatus({ type: 'success', message: 'Ingested.' }); 
                 setTimeout(() => setUploadStatus(null), 3000);
             });
         } catch (e) { 
-            finishProcessingWithMinRevolution(startTime, () => {
+            finishProcessing(() => {
                 setUploadStatus({ type: 'error', message: e.response?.data?.error || 'Failed.' }); 
             });
         }
@@ -115,9 +109,8 @@ export default function DocumentUpload({ sessionId, onDocumentAdded, privacyMode
                 }`}
             >
                 {isUploading && uploadType === 'pdf' ? (
-                    <div className="border-beam-inner bg-[#08090b] p-4 flex flex-col items-center justify-center">
-                        <div className="w-6 h-6 border-2 border-[#1f2229] border-t-[#3b82f6] rounded-full animate-spin mb-2"></div>
-                        <p className="text-[11px] font-medium text-[#60a5fa] uppercase tracking-wider font-mono">Syncing PDF...</p>
+                    <div className="border-beam-inner bg-[#08090b] p-4 flex items-center justify-center min-h-[76px]">
+                        <div className="w-6 h-6 border-2 border-[#1f2229] border-t-[#3b82f6] rounded-full animate-spin"></div>
                     </div>
                 ) : (
                     <div>

@@ -96,7 +96,7 @@ async function retrieveFromCollection(collectionName, query, embeddings, qdrantU
 
 export async function unifiedChatController(req, res) {
   try {
-    const { query, collectionName, collectionNames, rewrite, history = [], qdrantUrl } = req.body;
+    const { query, collectionName, collectionNames, rewrite, history = [], qdrantUrl, stream = false } = req.body;
     const collections = collectionNames || (collectionName ? [collectionName] : []);
 
     if (collections.length === 0) return res.status(400).json({ error: "❌ No source selected." });
@@ -108,12 +108,104 @@ export async function unifiedChatController(req, res) {
     const allDocsArrays = await Promise.all(collections.map(col => retrieveFromCollection(col, currentQuery, embeddings, qdrantUrl)));
     const allDocs = allDocsArrays.flat();
 
-    // Graceful fallback when no chunks are found
+    const uniqueSources = [];
+    const seenUrls = new Set();
+    allDocs.forEach((doc) => {
+      let srcUrl = doc.metadata?.source || doc.metadata?.url || 'Unknown';
+      if (srcUrl.includes('/uploads/')) {
+        srcUrl = 'uploads/' + srcUrl.split('/uploads/').pop();
+      }
+      if (!seenUrls.has(srcUrl)) {
+        seenUrls.add(srcUrl);
+        uniqueSources.push({
+          id: uniqueSources.length + 1,
+          source: srcUrl,
+          collection: doc.metadata?.collectionName || 'Unknown',
+          preview: (doc.pageContent?.substring(0, 120)?.trim() || '') + '...',
+        });
+      }
+    });
+
+    if (stream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      if (res.flushHeaders) res.flushHeaders();
+
+      if (allDocs.length === 0) {
+        res.write(`data: ${JSON.stringify({ type: 'start', chunksFound: 0, sources: [], rewrittenQuery: rewrite ? currentQuery : null })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'token', token: "I couldn't find any relevant content in the uploaded documents for this query. Please make sure your source is properly synced in the Neural Feed and try rephrasing your question." })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'done', chunksFound: 0, sources: [], rewrittenQuery: rewrite ? currentQuery : null })}\n\n`);
+        return res.end();
+      }
+
+      res.write(`data: ${JSON.stringify({ type: 'start', chunksFound: allDocs.length, sources: uniqueSources, rewrittenQuery: rewrite ? currentQuery : null })}\n\n`);
+
+      const contextText = allDocs.map((doc, i) => `--- Section ${i + 1} ---\n${doc.pageContent}`).join("\n\n");
+      const conversation = history.slice(-8).map(m => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.text
+      }));
+
+      const fwClient = getFwClient();
+      const SYSTEM_PROMPT = `/no_think
+You are KnowChain AI, a precise document-grounded assistant.
+
+INSTRUCTIONS:
+- Synthesize facts across different sections of the DOCUMENT CONTENT cohesively to formulate a complete answer.
+- Answer the query directly and concisely. Do not use conversational introductions or filler preambles (e.g., "Based on the provided documents..."). Start directly with the answer.
+- Rely ONLY on the clear facts stated in the DOCUMENT CONTENT. Do not extrapolate, assume, or fabricate details.
+- Use **bold** for key names, exact terms, and critical metrics/numbers.
+- Use markdown lists or headers (###) to organize structured or multi-part answers.
+- If the answer is not found in or cannot be directly inferred from the DOCUMENT CONTENT, reply exactly with: "This information is not available in the provided documents."
+
+DOCUMENT CONTENT:
+${contextText}`;
+
+      const streamResponse = await fwClient.chat.completions.create({
+        model: CHAT_MODEL_NAME,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          ...conversation,
+          { role: "user", content: query }
+        ],
+        temperature: 0.3,
+        max_tokens: 2048,
+        stream: true
+      });
+
+      let inThink = false;
+      let thinkBuf = '';
+      for await (const chunk of streamResponse) {
+        const token = chunk.choices[0]?.delta?.content || '';
+        if (!token) continue;
+        if (token.includes('<think>') || inThink) {
+          thinkBuf += token;
+          if (thinkBuf.includes('<think>') && !thinkBuf.includes('</think>')) {
+            inThink = true;
+            continue;
+          } else if (thinkBuf.includes('</think>')) {
+            const after = thinkBuf.split('</think>').pop();
+            inThink = false;
+            thinkBuf = '';
+            if (after) res.write(`data: ${JSON.stringify({ type: 'token', token: after })}\n\n`);
+            continue;
+          }
+        }
+        res.write(`data: ${JSON.stringify({ type: 'token', token })}\n\n`);
+      }
+
+      res.write(`data: ${JSON.stringify({ type: 'done', chunksFound: allDocs.length, sources: uniqueSources, rewrittenQuery: rewrite ? currentQuery : null })}\n\n`);
+      return res.end();
+    }
+
+    // Non-streaming fallback
     if (allDocs.length === 0) {
       return res.json({
         answer: "I couldn't find any relevant content in the uploaded documents for this query. Please make sure your source is properly synced in the Neural Feed and try rephrasing your question.",
         rewrittenQuery: rewrite ? currentQuery : null,
         chunksFound: 0,
+        sources: []
       });
     }
 
@@ -127,9 +219,8 @@ export async function unifiedChatController(req, res) {
     }));
 
     const fwClient = getFwClient();
-    // /no_think instructs Qwen3 to skip internal reasoning monologue
     const SYSTEM_PROMPT = `/no_think
-You are KnowChain AI v2.0, a precise document-grounded assistant.
+You are KnowChain AI, a precise document-grounded assistant.
 
 INSTRUCTIONS:
 - Synthesize facts across different sections of the DOCUMENT CONTENT cohesively to formulate a complete answer.
@@ -159,10 +250,16 @@ ${contextText}`;
       answer,
       rewrittenQuery: rewrite ? currentQuery : null,
       chunksFound: allDocs.length,
+      sources: uniqueSources
     });
 
   } catch (error) {
     console.error(`[ChatError] ${error.message}`);
-    res.status(500).json({ error: "Something went wrong processing your query. Please try again." });
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Something went wrong processing your query. Please try again." });
+    } else {
+      res.write(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`);
+      res.end();
+    }
   }
 }

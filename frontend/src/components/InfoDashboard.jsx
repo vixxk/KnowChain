@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
 	HiOutlineChartBar, HiOutlineClock, 
 	HiOutlineDatabase, HiArrowLeft,
 	HiOutlineTerminal, HiOutlineServer, HiOutlineKey, HiOutlineShieldCheck,
 	HiCheckCircle, HiX, HiOutlineEye
 } from 'react-icons/hi';
+import HeroBackground from './chat/HeroBackground';
 import API_BASE_URL from '../api/config';
 
 export default function InfoDashboard() {
+	const dashboardContainerRef = useRef(null);
 	const [metrics, setMetrics] = useState(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [selectedSample, setSelectedSample] = useState(null);
@@ -59,7 +61,7 @@ export default function InfoDashboard() {
 	})();
 
 	const traceList = userTraces.length ? userTraces : (obs.recent_traces || [
-		{ id: 'tr_8f91a', query: 'What framework powers KnowChain v2?', latency_ms: 312, tokens: 1420, cost_usd: '0.00092', status: 'SUCCESS' },
+		{ id: 'tr_8f91a', query: 'What framework powers KnowChain?', latency_ms: 312, tokens: 1420, cost_usd: '0.00092', status: 'SUCCESS' },
 		{ id: 'tr_42b9c', query: 'What vector database stores embedding chunks?', latency_ms: 245, tokens: 980, cost_usd: '0.00064', status: 'SUCCESS' },
 		{ id: 'tr_19a4e', query: 'How is hybrid vector search calculated?', latency_ms: 389, tokens: 1850, cost_usd: '0.00118', status: 'SUCCESS' }
 	]);
@@ -68,8 +70,8 @@ export default function InfoDashboard() {
 		{ 
 			id: 'gold-001', 
 			dataset_name: 'SQuAD 2.0', 
-			query: 'What framework powers the high-performance async state graph in KnowChain v2?', 
-			ground_truth_context: 'KnowChain v2 uses FastAPI for async API routing and LangGraph to manage stateful Retrieval-Augmented Generation (RAG) graphs.', 
+			query: 'What framework powers the high-performance async state graph in KnowChain?', 
+			ground_truth_context: 'KnowChain uses FastAPI for async API routing and LangGraph to manage stateful Retrieval-Augmented Generation (RAG) graphs.', 
 			ground_truth_answer: 'LangGraph powers the high-performance state graph, while FastAPI handles async API routing.', 
 			generated_answer: 'LangGraph powers the high-performance state graph, while FastAPI handles async API routing.', 
 			metrics: { recall_at_k: 0.96, precision_at_k: 0.92, faithfulness: 0.96, answer_relevancy: 0.95, answer_correctness: 0.98, abstention_accuracy: 1.0 } 
@@ -140,70 +142,77 @@ export default function InfoDashboard() {
 	];
 
 	return (
-		<div className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 text-[#eef0f3] bg-[#0a0b0d] space-y-4 sm:space-y-6 pb-24 sm:pb-8">
-			<div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-				
-				{/* Top Header Navigation */}
-				<div className="bg-[#101216] border border-[#1f2229] p-3.5 sm:p-5 rounded-xl flex items-center justify-between gap-3">
-					<div>
-						<h1 className="text-base sm:text-2xl font-bold tracking-tight text-[#eef0f3] font-mono">
-							RAG Telemetry Observatory
-						</h1>
-						<p className="text-[11px] sm:text-xs text-[#6b7280] font-mono mt-0.5">
-							Automated Ragas 6-Factor Quality & Security Audit Panel
-						</p>
-					</div>
+		<div 
+			ref={dashboardContainerRef}
+			className="flex-1 flex flex-col min-h-0 h-full relative overflow-hidden bg-[#08090b]"
+		>
+			{/* Special Effects Hero Background */}
+			<HeroBackground containerRef={dashboardContainerRef} />
 
-					<button
-						onClick={navigateToWorkspace}
-						className="btn-ghost-outlined px-3 py-1.5 text-xs font-mono font-medium flex items-center gap-1.5 shrink-0"
-					>
-						<HiArrowLeft size={13} className="text-[#6b7280]" />
-						<span>Workspace</span>
-					</button>
-				</div>
-
-				{/* Audit Verification Banner */}
-				<div className="bg-[#101216] border border-[#2a2d36] px-4 py-2.5 rounded-xl flex items-center justify-between text-xs font-mono">
-					<div className="flex items-center gap-2 text-[#34d399]">
-						<HiCheckCircle size={16} className="shrink-0" />
-						<span className="font-semibold uppercase tracking-wider text-[11px]">Evaluation Suite Verified • 8/8 Golden Benchmark Samples Audited</span>
-					</div>
-					<div className="hidden sm:flex items-center gap-4 text-[11px] text-[#9ca3af]">
-						<span>Vector Match Recall: <strong className="text-[#60a5fa]">94.0%</strong></span>
-						<span>NeMo Guardrails: <strong className="text-[#34d399]">100% SECURE</strong></span>
-					</div>
-				</div>
-
-				{/* Section 1: Hero Metric (Ragas Score) */}
-				<div className="hero-blue-glow bg-[#16181d] border border-[#1f2229] p-4 sm:p-8 rounded-xl flex flex-col md:flex-row items-center justify-between gap-6">
-					<div className="space-y-2 text-center md:text-left">
-						<div className="inline-flex items-center gap-2 px-3 py-1 bg-[#08090b] border border-[#2a2d36] rounded-md text-xs font-mono text-[#60a5fa]">
-							<HiOutlineChartBar size={14} />
-							<span>RAGAS BENCHMARK ENGINE</span>
+			<div className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 text-[#eef0f3] space-y-4 sm:space-y-6 pb-24 sm:pb-8 relative z-10 scrollbar-hide">
+				<div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+					
+					{/* Top Header Navigation */}
+					<div className="bg-[#101216]/75 backdrop-blur-md border border-[#1f2229]/80 p-3.5 sm:p-5 rounded-xl flex items-center justify-between gap-3">
+						<div>
+							<h1 className="text-base sm:text-2xl font-bold tracking-tight text-[#eef0f3] font-mono">
+								RAG Telemetry Observatory
+							</h1>
+							<p className="text-[11px] sm:text-xs text-[#6b7280] font-mono mt-0.5">
+								Automated Ragas 6-Factor Quality & Security Audit Panel
+							</p>
 						</div>
-						<h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#eef0f3] font-mono">
-							Overall Quality Score
-						</h2>
-						<p className="text-xs sm:text-sm text-[#9ca3af] max-w-xl font-sans">
-							Harmonized harmonic mean combining Retrieval (Recall & Precision), Generator (Faithfulness & Relevancy), and Abstention accuracy.
-						</p>
+
+						<button
+							onClick={navigateToWorkspace}
+							className="btn-ghost-outlined px-3 py-1.5 text-xs font-mono font-medium flex items-center gap-1.5 shrink-0"
+						>
+							<HiArrowLeft size={13} className="text-[#6b7280]" />
+							<span>Workspace</span>
+						</button>
 					</div>
 
-					<div className="flex flex-col items-center justify-center p-4 sm:p-6 bg-[#08090b] border border-[#2a2d36] rounded-xl shrink-0 min-w-[200px]">
-						<span className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-[#60a5fa]">
-							{((ragas.overall_ragas_score ?? 0.9230) * 100).toFixed(1)}%
-						</span>
-						<span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-[#6b7280] mt-1 font-semibold">
-							RAGAS AUDIT SCORE
-						</span>
+					{/* Audit Verification Banner */}
+					<div className="bg-[#101216]/75 backdrop-blur-md border border-[#2a2d36]/80 px-4 py-2.5 rounded-xl flex items-center justify-between text-xs font-mono">
+						<div className="flex items-center gap-2 text-[#34d399]">
+							<HiCheckCircle size={16} className="shrink-0" />
+							<span className="font-semibold uppercase tracking-wider text-[11px]">Evaluation Suite Verified • 8/8 Golden Benchmark Samples Audited</span>
+						</div>
+						<div className="hidden sm:flex items-center gap-4 text-[11px] text-[#9ca3af]">
+							<span>Vector Match Recall: <strong className="text-[#60a5fa]">94.0%</strong></span>
+							<span>NeMo Guardrails: <strong className="text-[#34d399]">100% SECURE</strong></span>
+						</div>
 					</div>
-				</div>
 
-				{/* Section 2: Metric Breakdown Grid (1x4 desktop, 2x2 mobile) */}
-				<div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 font-mono">
-					{/* Card 1: Recall@K */}
-					<div className="bg-[#16181d] border border-[#1f2229] p-3.5 sm:p-5 rounded-xl space-y-2 hover:border-[#2a2d36] transition-all">
+					{/* Section 1: Hero Metric (Ragas Score) */}
+					<div className="hero-blue-glow bg-[#101216]/75 backdrop-blur-md border border-[#1f2229]/80 p-4 sm:p-8 rounded-xl flex flex-col md:flex-row items-center justify-between gap-6">
+						<div className="space-y-2 text-center md:text-left">
+							<div className="inline-flex items-center gap-2 px-3 py-1 bg-[#08090b]/80 border border-[#2a2d36] rounded-md text-xs font-mono text-[#60a5fa]">
+								<HiOutlineChartBar size={14} />
+								<span>RAGAS BENCHMARK ENGINE</span>
+							</div>
+							<h2 className="text-xl sm:text-2xl font-bold tracking-tight text-[#eef0f3] font-mono">
+								Overall Quality Score
+							</h2>
+							<p className="text-xs sm:text-sm text-[#9ca3af] max-w-xl font-sans">
+								Harmonized harmonic mean combining Retrieval (Recall & Precision), Generator (Faithfulness & Relevancy), and Abstention accuracy.
+							</p>
+						</div>
+
+						<div className="flex flex-col items-center justify-center p-4 sm:p-6 bg-[#08090b]/80 border border-[#2a2d36] rounded-xl shrink-0 min-w-[200px]">
+							<span className="text-4xl sm:text-5xl font-black font-mono tracking-tight text-[#60a5fa]">
+								{((ragas.overall_ragas_score ?? 0.9230) * 100).toFixed(1)}%
+							</span>
+							<span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-[#6b7280] mt-1 font-semibold">
+								RAGAS AUDIT SCORE
+							</span>
+						</div>
+					</div>
+
+					{/* Section 2: Metric Breakdown Grid (1x4 desktop, 2x2 mobile) */}
+					<div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 font-mono">
+						{/* Card 1: Recall@K */}
+						<div className="bg-[#101216]/70 backdrop-blur-md border border-[#1f2229]/80 p-3.5 sm:p-5 rounded-xl space-y-2 hover:border-[#2a2d36] transition-all">
 						<div className="flex items-center justify-between text-[#6b7280]">
 							<span className="text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Recall@5</span>
 							<HiOutlineDatabase size={16} />
@@ -215,7 +224,7 @@ export default function InfoDashboard() {
 					</div>
 
 					{/* Card 2: Precision@K */}
-					<div className="bg-[#16181d] border border-[#1f2229] p-3.5 sm:p-5 rounded-xl space-y-2 hover:border-[#2a2d36] transition-all">
+					<div className="bg-[#101216]/70 backdrop-blur-md border border-[#1f2229]/80 p-3.5 sm:p-5 rounded-xl space-y-2 hover:border-[#2a2d36] transition-all">
 						<div className="flex items-center justify-between text-[#6b7280]">
 							<span className="text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Precision@5</span>
 							<HiOutlineChartBar size={16} />
@@ -227,7 +236,7 @@ export default function InfoDashboard() {
 					</div>
 
 					{/* Card 3: Faithfulness */}
-					<div className="bg-[#16181d] border border-[#1f2229] p-3.5 sm:p-5 rounded-xl space-y-2 hover:border-[#2a2d36] transition-all">
+					<div className="bg-[#101216]/70 backdrop-blur-md border border-[#1f2229]/80 p-3.5 sm:p-5 rounded-xl space-y-2 hover:border-[#2a2d36] transition-all">
 						<div className="flex items-center justify-between text-[#6b7280]">
 							<span className="text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Faithfulness</span>
 							<HiOutlineServer size={16} />
@@ -239,7 +248,7 @@ export default function InfoDashboard() {
 					</div>
 
 					{/* Card 4: Answer Relevancy */}
-					<div className="bg-[#16181d] border border-[#1f2229] p-3.5 sm:p-5 rounded-xl space-y-2 hover:border-[#2a2d36] transition-all">
+					<div className="bg-[#101216]/70 backdrop-blur-md border border-[#1f2229]/80 p-3.5 sm:p-5 rounded-xl space-y-2 hover:border-[#2a2d36] transition-all">
 						<div className="flex items-center justify-between text-[#6b7280]">
 							<span className="text-[10px] sm:text-xs uppercase tracking-wider font-semibold">Answer Relevancy</span>
 							<HiOutlineShieldCheck size={16} />
@@ -254,7 +263,7 @@ export default function InfoDashboard() {
 				{/* Section 3: Operational Telemetry & Cost */}
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 font-mono">
 					{/* Metric 1: Avg Latency */}
-					<div className="bg-[#16181d] border border-[#1f2229] p-3.5 sm:p-5 rounded-xl space-y-1.5">
+					<div className="bg-[#101216]/70 backdrop-blur-md border border-[#1f2229]/80 p-3.5 sm:p-5 rounded-xl space-y-1.5">
 						<div className="flex items-center gap-2 text-[#6b7280] text-[10px] uppercase font-semibold">
 							<HiOutlineClock size={14} />
 							<span>Pipeline Latency (p95)</span>
@@ -265,7 +274,7 @@ export default function InfoDashboard() {
 					</div>
 
 					{/* Metric 2: Tokens & Cost */}
-					<div className="bg-[#16181d] border border-[#1f2229] p-3.5 sm:p-5 rounded-xl space-y-1.5">
+					<div className="bg-[#101216]/70 backdrop-blur-md border border-[#1f2229]/80 p-3.5 sm:p-5 rounded-xl space-y-1.5">
 						<div className="flex items-center gap-2 text-[#6b7280] text-[10px] uppercase font-semibold">
 							<HiOutlineKey size={14} />
 							<span>Token Telemetry</span>
@@ -279,7 +288,7 @@ export default function InfoDashboard() {
 					</div>
 
 					{/* Metric 3: Total Cost */}
-					<div className="bg-[#16181d] border border-[#1f2229] p-3.5 sm:p-5 rounded-xl space-y-1.5">
+					<div className="bg-[#101216]/70 backdrop-blur-md border border-[#1f2229]/80 p-3.5 sm:p-5 rounded-xl space-y-1.5">
 						<div className="flex items-center gap-2 text-[#6b7280] text-[10px] uppercase font-semibold">
 							<HiOutlineTerminal size={14} />
 							<span>Operational Cost</span>
@@ -294,7 +303,7 @@ export default function InfoDashboard() {
 				</div>
 
 				{/* Live LangSmith Tracing Log */}
-				<div className="bg-[#16181d] border border-[#1f2229] rounded-xl overflow-hidden space-y-0">
+				<div className="bg-[#101216]/75 backdrop-blur-md border border-[#1f2229]/80 rounded-xl overflow-hidden space-y-0">
 					<div className="px-3.5 sm:px-5 py-3 border-b border-[#1f2229] flex items-center justify-between">
 						<div>
 							<h2 className="text-xs sm:text-sm font-semibold text-[#eef0f3] font-mono">Live LangSmith Tracing Log</h2>
@@ -327,7 +336,7 @@ export default function InfoDashboard() {
 							<div 
 								key={idx} 
 								onClick={() => setSelectedTrace(t)}
-								className="bg-[#101216] border border-[#1f2229] p-3 rounded-lg space-y-2 font-mono text-xs cursor-pointer hover:border-[#60a5fa]/50 transition-all"
+								className="bg-[#0c0e12]/60 backdrop-blur-sm border border-[#1f2229]/80 p-3 rounded-lg space-y-2 font-mono text-xs cursor-pointer hover:border-[#60a5fa]/50 transition-all"
 							>
 								<div className="flex items-center justify-between">
 									<span className="text-[#60a5fa] font-semibold">{t.id}</span>
@@ -348,7 +357,7 @@ export default function InfoDashboard() {
 					{/* Desktop Table View (>= 640px) */}
 					<div className="hidden sm:block overflow-x-auto">
 						<table className="w-full text-left text-xs font-mono text-[#9ca3af]">
-							<thead className="bg-[#101216] text-[#6b7280] uppercase text-[10px] tracking-wider border-b border-[#1f2229]">
+							<thead className="bg-[#0c0e12]/80 backdrop-blur-sm text-[#6b7280] uppercase text-[10px] tracking-wider border-b border-[#1f2229]">
 								<tr>
 									<th className="p-3">Trace ID</th>
 									<th className="p-3 font-sans">Query</th>
@@ -359,7 +368,7 @@ export default function InfoDashboard() {
 									<th className="p-3 text-[#34d399]">Cost (Rupees)</th>
 								</tr>
 							</thead>
-							<tbody className="divide-y divide-[#1f2229] bg-[#16181d]">
+							<tbody className="divide-y divide-[#1f2229] bg-[#101216]/40">
 								{traceList.map((t, idx) => (
 									<tr 
 										key={idx} 
@@ -391,7 +400,7 @@ export default function InfoDashboard() {
 				</div>
 
 				{/* NeMo Security Guardrails & Safety Matrix */}
-				<div className="bg-[#16181d] border border-[#1f2229] rounded-xl overflow-hidden space-y-3 p-3.5 sm:p-5">
+				<div className="bg-[#101216]/75 backdrop-blur-md border border-[#1f2229]/80 rounded-xl overflow-hidden space-y-3 p-3.5 sm:p-5">
 					<div className="border-b border-[#1f2229] pb-2.5">
 						<h2 className="text-xs sm:text-sm font-semibold text-[#eef0f3] font-mono">NeMo Security Guardrails & Safety Matrix</h2>
 						<p className="text-[10px] sm:text-xs text-[#6b7280] mt-0.5 font-mono">Prompt injections, PII leakage, and exfiltration defense</p>
@@ -406,7 +415,7 @@ export default function InfoDashboard() {
 						}).map(([key, item]) => {
 							const formattedName = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 							return (
-								<div key={key} className="bg-[#101216] border border-[#1f2229] p-3 rounded-lg flex items-center justify-between hover:border-[#2a2d36] transition-all">
+								<div key={key} className="bg-[#0c0e12]/60 backdrop-blur-sm border border-[#1f2229]/80 p-3 rounded-lg flex items-center justify-between hover:border-[#2a2d36] transition-all">
 									<div className="space-y-0.5">
 										<div className="text-xs font-medium text-[#eef0f3]">{formattedName}</div>
 										<div className="text-[10px] text-[#6b7280]">
@@ -424,7 +433,7 @@ export default function InfoDashboard() {
 				</div>
 
 				{/* Golden Benchmark Dataset Samples (Mobile Cards + Desktop Table) */}
-				<div className="bg-[#16181d] border border-[#1f2229] rounded-xl overflow-hidden space-y-0">
+				<div className="bg-[#101216]/75 backdrop-blur-md border border-[#1f2229]/80 rounded-xl overflow-hidden space-y-0">
 					<div className="px-3.5 sm:px-5 py-3 border-b border-[#1f2229] flex items-center justify-between">
 						<div>
 							<h2 className="text-xs sm:text-sm font-semibold text-[#eef0f3] font-mono">Golden Benchmark Dataset & Evidence Audit</h2>
@@ -441,7 +450,7 @@ export default function InfoDashboard() {
 							<div 
 								key={s.id} 
 								onClick={() => setSelectedSample(s)}
-								className="bg-[#101216] border border-[#1f2229] p-3.5 rounded-lg space-y-2.5 font-mono text-xs cursor-pointer hover:border-[#3b82f6]/50 transition-all active:scale-[0.99]"
+								className="bg-[#0c0e12]/60 backdrop-blur-sm border border-[#1f2229]/80 p-3.5 rounded-lg space-y-2.5 font-mono text-xs cursor-pointer hover:border-[#3b82f6]/50 transition-all active:scale-[0.99]"
 							>
 								<div className="flex items-center justify-between">
 									<div className="flex items-center gap-2">
@@ -494,7 +503,7 @@ export default function InfoDashboard() {
 					{/* Desktop Table View (>= 640px) */}
 					<div className="hidden sm:block overflow-x-auto">
 						<table className="w-full text-left text-xs font-mono text-[#9ca3af]">
-							<thead className="bg-[#101216] text-[#6b7280] uppercase text-[10px] tracking-wider border-b border-[#1f2229]">
+							<thead className="bg-[#0c0e12]/80 backdrop-blur-sm text-[#6b7280] uppercase text-[10px] tracking-wider border-b border-[#1f2229]">
 								<tr>
 									<th className="p-3">Sample ID</th>
 									<th className="p-3">Benchmark Schema</th>
@@ -506,7 +515,7 @@ export default function InfoDashboard() {
 									<th className="p-3">Evidence</th>
 								</tr>
 							</thead>
-							<tbody className="divide-y divide-[#1f2229] bg-[#16181d]">
+							<tbody className="divide-y divide-[#1f2229] bg-[#101216]/40">
 								{sampleList.map((s) => (
 									<tr 
 										key={s.id} 
@@ -588,7 +597,7 @@ export default function InfoDashboard() {
 									<span>Retrieved Ground Truth Context Passages</span>
 								</span>
 								<div className="bg-[#08090b] border border-[#1f2229] p-3 rounded-lg text-[#9ca3af] text-[11px] leading-relaxed max-h-36 overflow-y-auto font-mono">
-									{selectedSample.ground_truth_context || "KnowChain v2 indexer verified ground truth chunk retrieved with Cosine Similarity: 0.942."}
+									{selectedSample.ground_truth_context || "KnowChain indexer verified ground truth chunk retrieved with Cosine Similarity: 0.942."}
 								</div>
 							</div>
 
@@ -783,6 +792,7 @@ export default function InfoDashboard() {
 					</div>
 				</div>
 			)}
+			</div>
 		</div>
 	);
 }

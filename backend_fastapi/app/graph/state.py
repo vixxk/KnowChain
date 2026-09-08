@@ -11,3 +11,4 @@ class GraphState(TypedDict):
     retrieved_docs: List[Dict[str, Any]]
     chunks_found: int
     answer: str
+    sources: Optional[List[Dict[str, Any]]]

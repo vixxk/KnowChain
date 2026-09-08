@@ -152,6 +152,26 @@ async def retrieval_node(state: GraphState) -> Dict[str, Any]:
         "chunks_found": len(all_docs)
     }
 
+def extract_sources(all_docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    unique_sources = []
+    seen = set()
+    for doc in all_docs:
+        meta = doc.get("metadata") or {}
+        raw_src = meta.get("source") or meta.get("url") or meta.get("fileName") or "Unknown"
+        if "/uploads/" in raw_src:
+            src = "uploads/" + raw_src.split("/uploads/")[-1]
+        else:
+            src = raw_src
+        if src not in seen:
+            seen.add(src)
+            unique_sources.append({
+                "id": len(unique_sources) + 1,
+                "source": src,
+                "collection": meta.get("collectionName", "Unknown"),
+                "preview": (doc.get("pageContent", "")[:120] + "...").strip()
+            })
+    return unique_sources
+
 async def generate_node(state: GraphState) -> Dict[str, Any]:
     all_docs = state.get("retrieved_docs", [])
     query = state.get("query", "")
@@ -162,7 +182,8 @@ async def generate_node(state: GraphState) -> Dict[str, Any]:
     if not all_docs:
         return {
             "answer": "I couldn't find any relevant content in the uploaded documents for this query. Please make sure your source is properly synced in the Neural Feed and try rephrasing your question.",
-            "chunks_found": 0
+            "chunks_found": 0,
+            "sources": []
         }
 
     sections = []
@@ -176,7 +197,7 @@ async def generate_node(state: GraphState) -> Dict[str, Any]:
         conversation.append({"role": role, "content": m.get("text", "")})
 
     system_prompt = f"""/no_think
-You are KnowChain AI v2.0, a precise document-grounded assistant.
+You are KnowChain AI, a precise document-grounded assistant.
 
 INSTRUCTIONS:
 - ANSWER RELEVANCY: Target the user's specific question directly, concisely, and completely. Focus strictly on the exact entities and concepts requested in the query without fluff or unrelated tangents.
@@ -210,5 +231,7 @@ DOCUMENT CONTENT:
 
     return {
         "answer": cleaned_answer,
-        "chunks_found": len(all_docs)
+        "chunks_found": len(all_docs),
+        "sources": extract_sources(all_docs)
     }
+

@@ -3,6 +3,7 @@ import { HiOutlineDatabase, HiCheckCircle } from 'react-icons/hi';
 import WelcomeHub from './chat/WelcomeHub';
 import MessageList from './chat/MessageList';
 import ChatInput from './chat/ChatInput';
+import HeroBackground from './chat/HeroBackground';
 import API_BASE_URL from '../api/config';
 
 export default function ChatInterface({ sessionId, selectedCollections, messages, setMessages, onScroll, privacyMode, customQdrantUrl, onLoadingStateChange }) {
@@ -10,6 +11,7 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
   const [isLoading, setIsLoading] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
   const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   useEffect(() => {
     if (onLoadingStateChange) {
@@ -55,28 +57,137 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
     const userMsg = { id: Date.now(), text: input, sender: 'user' };
     const currentHistory = [...messages];
     setMessages(prev => [...prev, userMsg]);
-    const q = input; setInput(''); setIsLoading(true);
+    const q = input;
+    setInput('');
+    setIsLoading(true);
     const startTime = performance.now();
+    const aiMsgId = Date.now() + 1;
+    let placeholderAdded = false;
+
     try {
       const res = await fetch(`${API_BASE_URL}/chat/query`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           query: q, 
           collectionNames: selectedCollections, 
           rewrite: false, 
           history: currentHistory,
-          qdrantUrl 
+          qdrantUrl,
+          stream: true
         }),
       });
-      const data = await res.json();
+
+      if (!res.ok) {
+        let errMsg = 'Failed';
+        try {
+          const errJson = await res.json();
+          errMsg = errJson.error || errJson.message || errMsg;
+        } catch (e) {}
+        throw new Error(errMsg);
+      }
+
+      const contentType = res.headers.get('content-type') || '';
+      let accumulatedText = '';
+      let finalSources = [];
+
+      if (contentType.includes('text/event-stream') && res.body) {
+        // Mount streaming placeholder AI bubble
+        placeholderAdded = true;
+        setMessages(prev => [
+          ...prev,
+          {
+            id: aiMsgId,
+            text: '',
+            sender: 'ai',
+            isStreaming: true,
+            sourceCount: selectedCollections.length,
+            sources: []
+          }
+        ]);
+        setIsLoading(false);
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const blocks = buffer.split('\n\n');
+          buffer = blocks.pop() || '';
+
+          for (const block of blocks) {
+            const trimmed = block.trim();
+            if (!trimmed || !trimmed.startsWith('data: ')) continue;
+            const jsonStr = trimmed.slice(6).trim();
+
+            try {
+              const payload = JSON.parse(jsonStr);
+              if (payload.type === 'start') {
+                if (payload.sources) finalSources = payload.sources;
+                setMessages(prev => prev.map(m => m.id === aiMsgId ? {
+                  ...m,
+                  sourceCount: payload.sources?.length || selectedCollections.length,
+                  sources: payload.sources || []
+                } : m));
+              } else if (payload.type === 'token') {
+                accumulatedText += payload.token;
+                setMessages(prev => prev.map(m => m.id === aiMsgId ? {
+                  ...m,
+                  text: accumulatedText
+                } : m));
+              } else if (payload.type === 'done') {
+                if (payload.sources && payload.sources.length > 0) {
+                  finalSources = payload.sources;
+                }
+                setMessages(prev => prev.map(m => m.id === aiMsgId ? {
+                  ...m,
+                  isStreaming: false,
+                  sources: finalSources.length > 0 ? finalSources : m.sources
+                } : m));
+              } else if (payload.type === 'error') {
+                throw new Error(payload.error || 'Streaming error');
+              }
+            } catch (errParse) {
+              console.warn("SSE parse error:", errParse);
+            }
+          }
+        }
+
+        // Finalize streaming flag
+        setMessages(prev => prev.map(m => m.id === aiMsgId ? {
+          ...m,
+          isStreaming: false,
+          sources: finalSources.length > 0 ? finalSources : m.sources
+        } : m));
+
+      } else {
+        // Fallback for non-streaming JSON responses
+        const data = await res.json();
+        accumulatedText = data.answer || '';
+        finalSources = data.sources || [];
+        setMessages(prev => [
+          ...prev,
+          {
+            id: aiMsgId,
+            text: accumulatedText,
+            sender: 'ai',
+            isStreaming: false,
+            sourceCount: selectedCollections.length,
+            sources: finalSources
+          }
+        ]);
+      }
+
       const endTime = performance.now();
       const latencyMs = Math.round(endTime - startTime);
 
-      if (!res.ok) throw new Error(data.error || 'Failed');
-      
       // Calculate token count and cost estimate for user query
       const promptTokens = Math.max(45, Math.round(q.length * 1.3 + 150));
-      const compTokens = Math.max(30, Math.round((data.answer?.length || 0) * 1.3));
+      const compTokens = Math.max(30, Math.round(accumulatedText.length * 1.3));
       const totalTokens = promptTokens + compTokens;
       const costUsd = (((promptTokens / 1_000_000) * 0.90) + ((compTokens / 1_000_000) * 1.10)).toFixed(5);
 
@@ -97,18 +208,37 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
         console.error("Failed to save trace to localStorage:", e);
       }
 
-      setMessages(prev => [...prev, { id: Date.now() + 1, text: data.answer, sender: 'ai', sourceCount: selectedCollections.length, sources: data.sources || [] }]);
     } catch (err) {
-      setMessages(prev => [...prev, { id: Date.now() + 1, text: err.message, sender: 'ai', isError: true }]);
-    } finally { setIsLoading(false); }
+      if (placeholderAdded) {
+        setMessages(prev => prev.map(m => m.id === aiMsgId ? {
+          ...m,
+          text: err.message,
+          isError: true,
+          isStreaming: false
+        } : m));
+      } else {
+        setMessages(prev => [...prev, {
+          id: aiMsgId,
+          text: err.message,
+          sender: 'ai',
+          isError: true,
+          isStreaming: false
+        }]);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const activeCount = selectedCollections?.length || 0;
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 h-full relative">
+    <div ref={chatContainerRef} className="flex-1 flex flex-col min-h-0 h-full relative overflow-hidden bg-[#08090b]">
+      {/* Special Effects Hero Background */}
+      <HeroBackground containerRef={chatContainerRef} />
+
       {activeCount > 0 && (
-        <div className="h-11 flex items-center px-4 lg:px-8 shrink-0 border-b border-[#1f2229] bg-[#101216]/95 backdrop-blur-md z-10 font-mono">
+        <div className="h-11 flex items-center px-4 lg:px-8 shrink-0 border-b border-[#1f2229] bg-[#101216]/80 backdrop-blur-md z-10 font-mono">
           <div className="flex items-center gap-2.5 min-w-0">
             {/* Active Count Badge */}
             <div className="px-2.5 py-1 bg-[#08090b] border border-[#2a2d36] rounded-md flex items-center gap-2 shrink-0">
@@ -123,7 +253,7 @@ export default function ChatInterface({ sessionId, selectedCollections, messages
 
       <div 
         onScroll={onScroll}
-        className="flex-1 overflow-y-auto px-4 lg:px-12 py-6 pb-48 lg:pb-32 scrollbar-hide"
+        className="flex-1 overflow-y-auto px-4 lg:px-12 py-6 pb-48 lg:pb-32 scrollbar-hide relative z-10"
       >
         <div className="max-w-3xl mx-auto h-full flex flex-col pt-4 lg:pt-0">
           {messages.length === 0 ? <WelcomeHub /> : <MessageList messages={messages} isLoading={isLoading} messagesEndRef={messagesEndRef} />}
