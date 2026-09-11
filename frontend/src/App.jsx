@@ -6,6 +6,7 @@ import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
 import HistoryDrawer from './components/modals/HistoryDrawer';
 import PrivacyModal from './components/modals/PrivacyModal';
+import GlobalCursorGlow from './components/GlobalCursorGlow';
 import './App.css';
 import API_BASE_URL from './api/config';
 
@@ -235,6 +236,9 @@ function App() {
 				isPrivacyModalOpen={isPrivacyModalOpen}
 				setIsPrivacyModalOpen={setIsPrivacyModalOpen}
 			/>
+
+			{/* Global Cursor Glow effect following pointer everywhere */}
+			<GlobalCursorGlow />
 		</div>
 	);
 }

@@ -16,7 +16,7 @@ async def throttle_request():
         time_since_last = now - _last_request_time
         if time_since_last < request_delay:
             wait_time = request_delay - time_since_last
-            print(f"⏳ [BETA-THROTTLE-V2] Waiting {int(wait_time * 1000)}ms for API limits...")
+            print(f"⏳ [THROTTLE] Waiting {int(wait_time * 1000)}ms for API limits...")
             await asyncio.sleep(wait_time)
         _last_request_time = time.time()
 

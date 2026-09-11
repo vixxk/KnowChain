@@ -25,9 +25,6 @@ jobs:
             git stash
             git pull origin main || git pull origin master
             
-            # Stop & cleanup legacy Node.js PM2 backend process if active
-            pm2 stop knowchain-backend || true
-            pm2 delete knowchain-backend || true
             
             # Navigate to backend_fastapi, activate virtualenv and install dependencies
             cd backend_fastapi

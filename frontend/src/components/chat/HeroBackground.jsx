@@ -23,8 +23,6 @@ export default function HeroBackground({ containerRef, compact = false }) {
 
   // Track mouse position smoothly without triggering React re-renders
   useEffect(() => {
-    const target = containerRef?.current || window;
-
     const handlePointerMove = (e) => {
       if (containerRef?.current) {
         const rect = containerRef.current.getBoundingClientRect();
@@ -38,16 +36,18 @@ export default function HeroBackground({ containerRef, compact = false }) {
       }
     };
 
-    const handlePointerLeave = () => {
-      mouseRef.current.active = false;
+    const handlePointerLeave = (e) => {
+      if (!e.relatedTarget && !e.toElement) {
+        mouseRef.current.active = false;
+      }
     };
 
-    target.addEventListener('pointermove', handlePointerMove, { passive: true });
-    target.addEventListener('pointerleave', handlePointerLeave, { passive: true });
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    document.addEventListener('pointerleave', handlePointerLeave, { passive: true });
 
     return () => {
-      target.removeEventListener('pointermove', handlePointerMove);
-      target.removeEventListener('pointerleave', handlePointerLeave);
+      window.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('pointerleave', handlePointerLeave);
     };
   }, [containerRef]);
 
@@ -181,8 +181,9 @@ export default function HeroBackground({ containerRef, compact = false }) {
       // 1. Draw smooth, slow-gliding cursor spotlight directly on canvas
       if (mouse.opacity > 0.01) {
         const spotGrad = ctx.createRadialGradient(mouse.x, mouse.y, 0, mouse.x, mouse.y, SPOTLIGHT_RADIUS);
-        spotGrad.addColorStop(0, `rgba(59, 130, 246, ${0.07 * mouse.opacity})`);
-        spotGrad.addColorStop(0.45, `rgba(37, 99, 235, ${0.03 * mouse.opacity})`);
+        spotGrad.addColorStop(0, `rgba(96, 165, 250, ${0.12 * mouse.opacity})`);
+        spotGrad.addColorStop(0.35, `rgba(59, 130, 246, ${0.06 * mouse.opacity})`);
+        spotGrad.addColorStop(0.7, `rgba(37, 99, 235, ${0.02 * mouse.opacity})`);
         spotGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = spotGrad;
         ctx.fillRect(0, 0, width, height);

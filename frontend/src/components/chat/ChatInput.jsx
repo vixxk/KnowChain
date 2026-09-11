@@ -16,7 +16,7 @@ export default function ChatInput({ input, setInput, isLoading, isRewriting, han
     <div className="absolute bottom-4 sm:bottom-6 left-0 right-0 px-4 sm:px-8 z-30">
       <div className="max-w-3xl mx-auto">
         <form onSubmit={handleSendMessage}>
-          <div className={`relative bg-[#08090b] border border-[#2a2d36] focus-within:border-[#3b82f6] rounded-xl flex items-end p-2 transition-all ${
+          <div className={`relative bg-[#08090b] border border-[#2a2d36] hover:border-[#3b82f6]/40 hover:shadow-[0_0_20px_rgba(59,130,246,0.08)] focus-within:border-[#3b82f6] rounded-xl flex items-end p-2 transition-all duration-200 ${
             activeCount > 0 ? 'focus-within:ring-2 focus-within:ring-[#3b82f6]/20' : 'opacity-70'
           }`}>
             <textarea

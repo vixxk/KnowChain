@@ -1,6 +1,9 @@
+import time
 from langgraph.graph import StateGraph, START, END
 from app.graph.state import GraphState
 from app.graph.nodes import rewrite_node, retrieval_node, generate_node
+from app.guardrails.nemo_guardrails import NeMoGuardrails
+from app.observability.langsmith_logger import LangSmithLogger
 
 # Build state graph
 workflow = StateGraph(GraphState)
@@ -27,6 +30,20 @@ async def run_rag_pipeline(
     history: list = None,
     qdrant_url: str = None
 ) -> dict:
+    t_start = time.perf_counter()
+
+    # 1. Input Guardrail Check
+    input_guard = NeMoGuardrails.validate_input(query)
+    if not input_guard.get("is_safe"):
+        return {
+            "query": query,
+            "answer": "⚠️ Security Alert: Your request triggered a safety guardrail (Prompt Injection, Jailbreak, or Sensitive Data pattern detected).",
+            "chunks_found": 0,
+            "sources": [],
+            "rewritten_query": None,
+            "security_guardrail": input_guard
+        }
+
     initial_state: GraphState = {
         "query": query,
         "collection_name": collection_name,
@@ -41,6 +58,31 @@ async def run_rag_pipeline(
     }
 
     final_state = await rag_app.ainvoke(initial_state)
+
+    # 2. Context Guardrail Check
+    retrieved_docs = final_state.get("retrieved_docs", [])
+    if retrieved_docs:
+        NeMoGuardrails.validate_retrieved_context(retrieved_docs)
+
+    # 3. Output Guardrail Check
+    answer = final_state.get("answer", "")
+    if answer:
+        output_guard = NeMoGuardrails.validate_output(answer)
+        if not output_guard.get("data_exfiltration"):
+            final_state["answer"] = "⚠️ Content Redacted: The generated answer contained unauthorized sensitive credential patterns."
+
+    # 4. Log live telemetry to LangSmithLogger
+    latency_ms = (time.perf_counter() - t_start) * 1000
+    prompt_tokens = max(50, len(query) // 3 + 120)
+    completion_tokens = max(20, len(answer) // 3)
+    LangSmithLogger.log_execution(
+        query=query,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        latency_ms=latency_ms,
+        is_error=False
+    )
+
     return final_state
 
 async def stream_rag_pipeline(
@@ -54,6 +96,29 @@ async def stream_rag_pipeline(
     from app.utils.ai import rewrite_query, get_embeddings, get_fw_client, CHAT_MODEL_NAME
     from app.graph.nodes import retrieve_from_collection, extract_sources
 
+    t_start = time.perf_counter()
+
+    # 1. Live Input Guardrail Validation
+    input_guard = NeMoGuardrails.validate_input(query)
+    if not input_guard.get("is_safe"):
+        yield {
+            "type": "start",
+            "chunksFound": 0,
+            "sources": [],
+            "rewrittenQuery": None
+        }
+        yield {
+            "type": "token",
+            "token": "⚠️ Security Alert: Your query triggered an automated security guardrail (Prompt Injection, Jailbreak, or Sensitive Data detected). Please adjust your query."
+        }
+        yield {
+            "type": "done",
+            "chunksFound": 0,
+            "sources": [],
+            "rewrittenQuery": None
+        }
+        return
+
     current_query = query
     rewritten_query = None
     if rewrite and query:
@@ -66,6 +131,10 @@ async def stream_rag_pipeline(
     for col in collections:
         docs = await retrieve_from_collection(col, current_query, embeddings, qdrant_url)
         all_docs.extend(docs)
+
+    # 2. Live Context Guardrail Validation
+    if all_docs:
+        NeMoGuardrails.validate_retrieved_context(all_docs)
 
     unique_sources = extract_sources(all_docs)
 
@@ -135,6 +204,7 @@ DOCUMENT CONTENT:
 
     in_think_block = False
     think_buffer = ""
+    full_generated_answer = ""
 
     async for chunk in response_stream:
         if chunk.choices and len(chunk.choices) > 0:
@@ -153,10 +223,28 @@ DOCUMENT CONTENT:
                     in_think_block = False
                     think_buffer = ""
                     if after_think:
+                        full_generated_answer += after_think
                         yield {"type": "token", "token": after_think}
                     continue
 
+            full_generated_answer += content
             yield {"type": "token", "token": content}
+
+    # 3. Live Output Guardrail Validation
+    if full_generated_answer:
+        NeMoGuardrails.validate_output(full_generated_answer)
+
+    # 4. Live Telemetry Recording
+    latency_ms = (time.perf_counter() - t_start) * 1000
+    prompt_tokens = max(50, len(query) // 3 + len(context_text) // 4 + 120)
+    completion_tokens = max(20, len(full_generated_answer) // 3)
+    LangSmithLogger.log_execution(
+        query=query,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        latency_ms=latency_ms,
+        is_error=False
+    )
 
     yield {
         "type": "done",
@@ -164,4 +252,3 @@ DOCUMENT CONTENT:
         "sources": unique_sources,
         "rewrittenQuery": rewritten_query
     }
-
