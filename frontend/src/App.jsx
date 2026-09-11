@@ -167,13 +167,9 @@ function App() {
 				/>
 
 				<div className="flex-1 flex flex-col min-w-0 h-full">
-					{/* Main High-Density Tech Panel: Glowing Blue Border Beam ONLY when loading */}
-					<div className={`flex-1 flex flex-col h-full rounded-xl overflow-hidden relative transition-all ${
-						(isLoading || isChatLoading) 
-							? 'border-beam-card border-beam-card-slow' 
-							: 'bg-[#0a0b0d] border border-[#1f2229]'
-					}`}>
-						<div className={(isLoading || isChatLoading) ? "border-beam-inner bg-[#0a0b0d]" : "flex-1 flex flex-col min-h-0 h-full"}>
+					{/* Main High-Density Tech Panel */}
+					<div className="flex-1 flex flex-col h-full rounded-xl overflow-hidden relative transition-all bg-[#0a0b0d] border border-[#1f2229]">
+						<div className="flex-1 flex flex-col min-h-0 h-full">
 							<Header 
 								activeTab={activeTab}
 								setActiveTab={setActiveTab}
