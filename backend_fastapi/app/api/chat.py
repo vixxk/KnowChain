@@ -15,8 +15,20 @@ from app.indexers.web import web_indexer
 from app.indexers.pdf import pdf_indexer
 from app.indexers.text import text_indexer
 from app.indexers.cleanup import delete_session_collections
+from app.cache.semantic_cache import semantic_cache
 
 router = APIRouter(prefix="/chat", tags=["Chat & Indexing"])
+
+@router.get("/cache/status")
+async def get_cache_status():
+    """Get operational status and stats of the semantic cache."""
+    return semantic_cache.get_status()
+
+@router.post("/cache/clear")
+async def clear_cache():
+    """Clear all entries from the semantic cache."""
+    success = semantic_cache.clear()
+    return {"status": "cleared" if success else "failed"}
 
 def generate_collection_name(session_id: str, type_prefix: str) -> str:
     timestamp_ms = int(time.time() * 1000)
@@ -62,9 +74,41 @@ async def unified_chat(req: ChatQueryRequest):
             content={"error": "Query is required."}
         )
 
-    # Handle streaming response
+    # 1. Check Semantic Cache first
+    cached_result = semantic_cache.check(query=req.query, collections=collections)
+    if cached_result:
+        if req.stream:
+            async def cached_event_stream():
+                yield f"data: {json.dumps({'type': 'status', 'message': '⚡ Retrieved from Semantic Cache'})}\n\n"
+                if cached_result.get("sources"):
+                    yield f"data: {json.dumps({'type': 'sources', 'sources': cached_result['sources']})}\n\n"
+                yield f"data: {json.dumps({'type': 'token', 'token': cached_result.get('answer', '')})}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'chunks_found': cached_result.get('chunks_found', 0), 'cached': True})}\n\n"
+
+            return StreamingResponse(
+                cached_event_stream(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no"
+                }
+            )
+        else:
+            return {
+                "answer": cached_result.get("answer", ""),
+                "rewrittenQuery": None,
+                "chunksFound": cached_result.get("chunks_found", 0),
+                "sources": cached_result.get("sources", []),
+                "cached": True
+            }
+
+    # 2. Handle streaming response (Cache Miss)
     if req.stream:
         async def event_stream():
+            full_answer_chunks = []
+            final_sources = []
+            chunks_found_count = 0
             try:
                 async for event in stream_rag_pipeline(
                     query=req.query,
@@ -74,7 +118,26 @@ async def unified_chat(req: ChatQueryRequest):
                     history=req.history or [],
                     qdrant_url=req.qdrantUrl
                 ):
+                    event_type = event.get("type")
+                    if event_type == "token":
+                        full_answer_chunks.append(event.get("token", ""))
+                    elif event_type == "sources":
+                        final_sources = event.get("sources", [])
+                    elif event_type == "done":
+                        chunks_found_count = event.get("chunks_found", 0)
+
                     yield f"data: {json.dumps(event)}\n\n"
+
+                # Store complete answer in semantic cache upon stream finish
+                full_answer = "".join(full_answer_chunks)
+                if full_answer and not full_answer.startswith("⚠️"):
+                    semantic_cache.store(
+                        query=req.query,
+                        answer=full_answer,
+                        collections=collections,
+                        sources=final_sources,
+                        chunks_found=chunks_found_count
+                    )
             except Exception as e:
                 print(f"[ChatStreamError] {e}")
                 err_data = {"type": "error", "error": "Something went wrong processing your query. Please try again."}
@@ -90,6 +153,7 @@ async def unified_chat(req: ChatQueryRequest):
             }
         )
 
+    # 3. Handle non-streaming response (Cache Miss)
     try:
         result = await run_rag_pipeline(
             query=req.query,
@@ -100,11 +164,22 @@ async def unified_chat(req: ChatQueryRequest):
             qdrant_url=req.qdrantUrl
         )
 
+        answer = result.get("answer", "")
+        if answer and not answer.startswith("⚠️"):
+            semantic_cache.store(
+                query=req.query,
+                answer=answer,
+                collections=collections,
+                sources=result.get("sources", []),
+                chunks_found=result.get("chunks_found", 0)
+            )
+
         return {
-            "answer": result.get("answer", ""),
+            "answer": answer,
             "rewrittenQuery": result.get("rewritten_query") if req.rewrite else None,
             "chunksFound": result.get("chunks_found", 0),
-            "sources": result.get("sources", [])
+            "sources": result.get("sources", []),
+            "cached": False
         }
     except Exception as e:
         print(f"[ChatError] {e}")

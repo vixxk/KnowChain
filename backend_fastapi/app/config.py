@@ -23,6 +23,13 @@ class Settings:
     LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY", "")
     LANGCHAIN_PROJECT: str = os.getenv("LANGCHAIN_PROJECT", "knowchain-observability")
 
+    # Semantic Cache Settings (RedisVL + HuggingFace)
+    REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379")
+    SEMANTIC_CACHE_ENABLED: bool = os.getenv("SEMANTIC_CACHE_ENABLED", "true").lower() in ("true", "1", "yes")
+    SEMANTIC_CACHE_THRESHOLD: float = float(os.getenv("SEMANTIC_CACHE_THRESHOLD", "0.15"))
+    SEMANTIC_CACHE_TTL: int = int(os.getenv("SEMANTIC_CACHE_TTL", "86400"))  # 24 hours
+    SEMANTIC_CACHE_MODEL: str = os.getenv("SEMANTIC_CACHE_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+
 settings = Settings()
 
 # Automatically set LangSmith environment variables for LangChain / LangGraph tracing
