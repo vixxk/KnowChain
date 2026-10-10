@@ -62,7 +62,7 @@ GOLDEN_DATASET: List[Dict[str, Any]] = [
         "id": "gold-008",
         "dataset_name": "SQuAD 2.0",
         "query": "Where are user uploaded PDF files temporarily saved before parsing?",
-        "ground_truth_context": "Uploaded PDF documents are saved in the local uploads directory before being parsed with pypdf and indexed into Qdrant.",
+        "ground_truth_context": "Uploaded PDF documents are saved in the local uploads directory before being parsed with PyMuPDF and indexed into Qdrant.",
         "ground_truth_answer": "Uploaded PDF files are saved in the local uploads directory.",
         "is_answerable": True
     }
