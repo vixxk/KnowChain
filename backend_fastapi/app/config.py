@@ -15,8 +15,10 @@ class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     
     FW_BASE_URL: str = "https://api.fireworks.ai/inference/v1"
-    CHAT_MODEL: str = os.getenv("CHAT_MODEL", "accounts/fireworks/models/deepseek-v4-pro-0813")
+    CHAT_MODEL: str = "accounts/fireworks/models/deepseek-v4p1-flash"
     EMBED_MODEL: str = "nomic-ai/nomic-embed-text-v1.5"
+
+
 
     LANGCHAIN_TRACING_V2: str = os.getenv("LANGCHAIN_TRACING_V2", "true")
     LANGCHAIN_ENDPOINT: str = os.getenv("LANGCHAIN_ENDPOINT", "https://api.smith.langchain.com")

@@ -29,18 +29,30 @@ export default function DocumentUpload({ sessionId, onDocumentAdded, privacyMode
     };
 
     const handleFileUpload = async (file) => {
-        if (!file || file.type !== 'application/pdf') { setUploadStatus({ type: 'error', message: 'PDF only.' }); return; }
+        const isPdf = file?.type === 'application/pdf' || file?.name?.toLowerCase().endsWith('.pdf');
+        const isImage = file?.type?.startsWith('image/') || /\.(png|jpe?g|webp|bmp|tiff)$/i.test(file?.name || '');
+
+        if (!file || (!isPdf && !isImage)) {
+            setUploadStatus({ type: 'error', message: 'PDF or Image only.' });
+            return;
+        }
         if (privacyMode && !customQdrantUrl) { setUploadStatus({ type: 'error', message: 'Set Qdrant URL first.' }); return; }
         
-        startProcessing('pdf');
+        startProcessing('file');
         const formData = new FormData(); 
         formData.append('file', file); 
         formData.append('sessionId', sessionId);
         if (qdrantUrl) formData.append('qdrantUrl', qdrantUrl);
 
         try {
-            const res = await axios.post(`${API_BASE_URL}/chat/index/pdf`, formData);
-            onDocumentAdded({ name: file.name, type: 'pdf', size: (file.size / 1024 / 1024).toFixed(2) + ' MB', collection: res.data.collectionName });
+            const endpoint = isImage ? `${API_BASE_URL}/chat/index/image` : `${API_BASE_URL}/chat/index/pdf`;
+            const res = await axios.post(endpoint, formData);
+            onDocumentAdded({
+                name: file.name,
+                type: isImage ? 'image' : 'pdf',
+                size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+                collection: res.data.collectionName
+            });
             finishProcessing(() => {
                 setUploadStatus({ type: 'success', message: 'Synced.' }); 
                 setTimeout(() => setUploadStatus(null), 3000);
@@ -51,6 +63,7 @@ export default function DocumentUpload({ sessionId, onDocumentAdded, privacyMode
             });
         }
     };
+
 
     const handleUrlSubmit = async (e) => {
         e.preventDefault(); if (!urlInput.trim() || isUploading) return;
@@ -101,14 +114,14 @@ export default function DocumentUpload({ sessionId, onDocumentAdded, privacyMode
                 onDrop={(e) => { e.preventDefault(); setIsDragActive(false); if (e.dataTransfer.files[0]) handleFileUpload(e.dataTransfer.files[0]); }}
                 onClick={() => !isUploading && fileInputRef.current?.click()}
                 className={`rounded-lg text-center cursor-pointer transition-all ${
-                    isUploading && uploadType === 'pdf'
+                    isUploading && (uploadType === 'file' || uploadType === 'pdf')
                         ? 'border-beam-card border-beam-card-slow'
                         : isDragActive 
                             ? 'border border-dashed border-[#3b82f6] bg-[#3b82f6]/10 p-4' 
                             : 'border border-dashed border-[#2a2d36] bg-[#08090b] hover:border-[#3a3e4a] hover:bg-[#101216] p-4'
                 }`}
             >
-                {isUploading && uploadType === 'pdf' ? (
+                {isUploading && (uploadType === 'file' || uploadType === 'pdf') ? (
                     <div className="border-beam-inner bg-[#08090b] p-4 flex items-center justify-center min-h-[76px]">
                         <div className="w-6 h-6 border-2 border-[#1f2229] border-t-[#3b82f6] rounded-full animate-spin"></div>
                     </div>
@@ -116,10 +129,11 @@ export default function DocumentUpload({ sessionId, onDocumentAdded, privacyMode
                     <div>
                         <HiCloudUpload className="text-2xl text-[#6b7280] mx-auto mb-1.5" />
                         <p className="text-xs font-medium text-[#eef0f3]">Sync Unit</p>
-                        <p className="text-[10px] text-[#6b7280] mt-0.5 font-mono">Drag & Drop PDF (Max 20MB)</p>
+                        <p className="text-[10px] text-[#6b7280] mt-0.5 font-mono">Drag & Drop PDF or Image (OCR enabled)</p>
                     </div>
                 )}
-                <input type="file" ref={fileInputRef} onChange={(e) => e.target.files[0] && handleFileUpload(e.target.files[0])} className="hidden" accept=".pdf" />
+                <input type="file" ref={fileInputRef} onChange={(e) => e.target.files[0] && handleFileUpload(e.target.files[0])} className="hidden" accept=".pdf,image/*,.png,.jpg,.jpeg,.webp" />
+
             </div>
 
             {/* Connect Website Node Input Box */}

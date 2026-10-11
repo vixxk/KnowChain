@@ -13,6 +13,7 @@ from app.graph.rag_graph import run_rag_pipeline, stream_rag_pipeline
 from app.utils.ai import rewrite_query
 from app.indexers.web import web_indexer
 from app.indexers.pdf import pdf_indexer
+from app.indexers.image import image_indexer
 from app.indexers.text import text_indexer
 from app.indexers.cleanup import delete_session_collections
 from app.cache.semantic_cache import semantic_cache
@@ -259,6 +260,12 @@ async def index_pdf(
             content = await file.read()
             f.write(content)
 
+        # Smart routing: if an image is uploaded to the document endpoint, use OCR image indexer
+        if file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff')):
+            collection_name = generate_collection_name(sessionId, "image")
+            await image_indexer(file_path, collection_name, qdrantUrl)
+            return {"message": "Indexed", "collectionName": collection_name}
+
         collection_name = generate_collection_name(sessionId, "pdf")
         await pdf_indexer(file_path, collection_name, qdrantUrl)
         return {"message": "Indexed", "collectionName": collection_name}
@@ -267,6 +274,36 @@ async def index_pdf(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": str(e)}
         )
+
+@router.post("/index/image")
+async def index_image(
+    file: Optional[UploadFile] = File(None),
+    sessionId: Optional[str] = Form(None),
+    qdrantUrl: Optional[str] = Form(None)
+):
+    if not file or not sessionId:
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"error": "Missing file or session"}
+        )
+    try:
+        uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+        os.makedirs(uploads_dir, exist_ok=True)
+        file_path = os.path.join(uploads_dir, file.filename)
+
+        with open(file_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
+
+        collection_name = generate_collection_name(sessionId, "image")
+        await image_indexer(file_path, collection_name, qdrantUrl)
+        return {"message": "Indexed", "collectionName": collection_name}
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"error": str(e)}
+        )
+
 
 @router.post("/index/text")
 async def index_text(req: TextIndexRequest):
