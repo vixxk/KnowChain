@@ -1,6 +1,6 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.utils.ai import get_embeddings
-from app.indexers.base import chunk_array, run_incremental_indexing
+from app.data_ingestion.base import chunk_array, run_incremental_indexing
 
 async def text_indexer(text_content: str, collection_name: str, qdrant_url: str = None):
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)

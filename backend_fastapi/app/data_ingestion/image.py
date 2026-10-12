@@ -1,8 +1,8 @@
 import re
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.utils.ai import get_embeddings
-from app.indexers.base import chunk_array, run_incremental_indexing
-from app.utils.ocr import extract_text_from_image_async
+from app.data_ingestion.base import chunk_array, run_incremental_indexing
+from app.data_ingestion.ocr import extract_text_from_image_async
 
 async def image_indexer(image_file_path: str, collection_name: str, qdrant_url: str = None):
     """
@@ -15,7 +15,6 @@ async def image_indexer(image_file_path: str, collection_name: str, qdrant_url: 
     if not text:
         raise ValueError("No readable text detected in the provided image.")
 
-    # Normalize redundant whitespace
     cleaned_text = re.sub(r'[ \t]+', ' ', text)
     cleaned_text = re.sub(r'\n{3,}', '\n\n', cleaned_text)
 

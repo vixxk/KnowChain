@@ -2,8 +2,8 @@ import re
 import pymupdf
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.utils.ai import get_embeddings
-from app.indexers.base import chunk_array, run_incremental_indexing
-from app.utils.ocr import ocr_pymupdf_page_async, extract_and_ocr_embedded_images
+from app.data_ingestion.base import chunk_array, run_incremental_indexing
+from app.data_ingestion.ocr import ocr_pymupdf_page_async, extract_and_ocr_embedded_images
 
 async def pdf_indexer(pdf_file_path: str, collection_name: str, qdrant_url: str = None):
     doc = pymupdf.open(pdf_file_path)
@@ -60,5 +60,3 @@ async def pdf_indexer(pdf_file_path: str, collection_name: str, qdrant_url: str 
     embeddings = get_embeddings()
     batches = chunk_array(docs, 100)
     await run_incremental_indexing(batches, embeddings, collection_name, qdrant_url)
-
-

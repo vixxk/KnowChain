@@ -3,7 +3,7 @@ import httpx
 from bs4 import BeautifulSoup
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.utils.ai import get_embeddings
-from app.indexers.base import chunk_array, run_incremental_indexing
+from app.data_ingestion.base import chunk_array, run_incremental_indexing
 
 async def web_indexer(url: str, collection_name: str, qdrant_url: str = None):
     headers = {

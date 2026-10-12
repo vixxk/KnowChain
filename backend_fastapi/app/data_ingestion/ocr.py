@@ -2,7 +2,7 @@ import asyncio
 import io
 import re
 from typing import Union, List, Optional
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageEnhance
 import pytesseract
 import pymupdf
 
@@ -15,13 +15,9 @@ def preprocess_image_for_ocr(image: Image.Image) -> Image.Image:
     if image.mode in ("RGBA", "P"):
         image = image.convert("RGB")
     
-    # Convert to grayscale
     gray = image.convert("L")
-    
-    # Enhance contrast
     enhancer = ImageEnhance.Contrast(gray)
     enhanced = enhancer.enhance(1.8)
-    
     return enhanced
 
 def _extract_text_sync(image_input: Union[str, bytes, Image.Image], lang: str = "eng") -> str:
@@ -38,14 +34,10 @@ def _extract_text_sync(image_input: Union[str, bytes, Image.Image], lang: str = 
         else:
             return ""
 
-        # Preprocess
         processed = preprocess_image_for_ocr(img)
-
-        # Run Tesseract with LSTM engine
         config = "--oem 1 --psm 3"
         raw_text = pytesseract.image_to_string(processed, lang=lang, config=config) or ""
         
-        # Clean extracted text
         cleaned = re.sub(r'[ \t]+', ' ', raw_text)
         cleaned = re.sub(r'\n{3,}', '\n\n', cleaned).strip()
         return cleaned
@@ -85,8 +77,7 @@ async def extract_and_ocr_embedded_images(
     lang: str = "eng"
 ) -> List[str]:
     """
-    Extracts embedded raster images on a page and runs OCR on qualifying images
-    (e.g., charts, diagrams, scanned inserts).
+    Extracts embedded raster images on a page and runs OCR on qualifying images.
     """
     extracted_texts = []
     try:
@@ -101,7 +92,6 @@ async def extract_and_ocr_embedded_images(
                 width = base_img.get("width", 0)
                 height = base_img.get("height", 0)
                 
-                # Filter out small icons, decorative bullets, logos
                 if width < min_dimension or height < min_dimension:
                     continue
 
@@ -110,10 +100,9 @@ async def extract_and_ocr_embedded_images(
                     continue
 
                 text = await extract_text_from_image_async(image_bytes, lang=lang)
-                # Only keep if meaningful text was found (>= 15 chars)
                 if text and len(text.strip()) >= 15:
                     extracted_texts.append(text.strip())
-            except Exception as img_err:
+            except Exception:
                 continue
     except Exception as e:
         print(f"⚠️ [OCR Error] Failed to extract embedded images: {e}")

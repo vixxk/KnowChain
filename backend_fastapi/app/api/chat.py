@@ -11,12 +11,15 @@ from pydantic import BaseModel
 
 from app.graph.rag_graph import run_rag_pipeline, stream_rag_pipeline
 from app.utils.ai import rewrite_query
-from app.indexers.web import web_indexer
-from app.indexers.pdf import pdf_indexer
-from app.indexers.image import image_indexer
-from app.indexers.text import text_indexer
-from app.indexers.cleanup import delete_session_collections
+from app.data_ingestion import (
+    web_indexer,
+    pdf_indexer,
+    image_indexer,
+    text_indexer,
+    delete_session_collections
+)
 from app.cache.semantic_cache import semantic_cache
+
 
 router = APIRouter(prefix="/chat", tags=["Chat & Indexing"])
 
