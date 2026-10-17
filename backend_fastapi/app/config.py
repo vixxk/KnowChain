@@ -32,6 +32,14 @@ class Settings:
     SEMANTIC_CACHE_TTL: int = int(os.getenv("SEMANTIC_CACHE_TTL", "86400"))  # 24 hours
     SEMANTIC_CACHE_MODEL: str = os.getenv("SEMANTIC_CACHE_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
 
+    # AWS S3 Storage Settings
+    AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY", "")
+    AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
+    AWS_S3_BUCKET_NAME: str = os.getenv("AWS_S3_BUCKET_NAME", "")
+    AWS_S3_ENDPOINT_URL: str = os.getenv("AWS_S3_ENDPOINT_URL", "")
+    AWS_S3_PRESIGNED_URL_EXPIRES: int = int(os.getenv("AWS_S3_PRESIGNED_URL_EXPIRES", 3600))
+
 settings = Settings()
 
 # Automatically set LangSmith environment variables for LangChain / LangGraph tracing

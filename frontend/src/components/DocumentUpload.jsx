@@ -51,7 +51,9 @@ export default function DocumentUpload({ sessionId, onDocumentAdded, privacyMode
                 name: file.name,
                 type: isImage ? 'image' : 'pdf',
                 size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-                collection: res.data.collectionName
+                collection: res.data.collectionName,
+                source: res.data.source || null,
+                url: res.data.presignedUrl || res.data.s3Url || null
             });
             finishProcessing(() => {
                 setUploadStatus({ type: 'success', message: 'Synced.' }); 

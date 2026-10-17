@@ -1,12 +1,23 @@
 import re
 import pymupdf
+from typing import Union, Optional
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.utils.ai import get_embeddings
 from app.data_ingestion.base import chunk_array, run_incremental_indexing
 from app.data_ingestion.ocr import ocr_pymupdf_page_async, extract_and_ocr_embedded_images
 
-async def pdf_indexer(pdf_file_path: str, collection_name: str, qdrant_url: str = None):
-    doc = pymupdf.open(pdf_file_path)
+async def pdf_indexer(
+    pdf_input: Union[str, bytes],
+    collection_name: str,
+    qdrant_url: str = None,
+    source_identifier: Optional[str] = None
+):
+    if isinstance(pdf_input, (bytes, bytearray)):
+        doc = pymupdf.open(stream=pdf_input, filetype="pdf")
+    else:
+        doc = pymupdf.open(pdf_input)
+
+    source_meta = source_identifier or (pdf_input if isinstance(pdf_input, str) else "uploaded_document.pdf")
     total_pages = len(doc)
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
 
@@ -44,7 +55,7 @@ async def pdf_indexer(pdf_file_path: str, collection_name: str, qdrant_url: str 
                 docs.append({
                     "pageContent": f"search_document: {c}",
                     "metadata": {
-                        "source": pdf_file_path,
+                        "source": source_meta,
                         "page": page_idx + 1,
                         "total_pages": total_pages,
                         "is_ocr": is_ocr
@@ -54,7 +65,7 @@ async def pdf_indexer(pdf_file_path: str, collection_name: str, qdrant_url: str 
         doc.close()
 
     if not docs:
-        print(f"⚠️ [PyMuPDF + OCR] No extractable text found in {pdf_file_path}")
+        print(f"⚠️ [PyMuPDF + OCR] No extractable text found in {source_meta}")
         return
 
     embeddings = get_embeddings()

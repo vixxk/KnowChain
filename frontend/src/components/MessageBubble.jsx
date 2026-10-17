@@ -293,7 +293,7 @@ export default function MessageBubble({ message }) {
                     {src.source ? (
                       <a href={src.source.startsWith('http') ? src.source : `${API_BASE_URL}/${src.source}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#9ca3af] group-hover/src:text-[#60a5fa] truncate transition-colors flex items-center gap-1">
                         <HiExternalLink size={11} className="shrink-0 text-[#6b7280] group-hover/src:text-[#60a5fa]" />
-                        <span className="truncate">{src.source.replace(/^uploads\//, '')}</span>
+                        <span className="truncate">{src.source.replace(/^uploads\//, '').split('/').pop()}</span>
                       </a>
                     ) : (
                       <span className="text-xs text-[#9ca3af] truncate">{src.preview}</span>

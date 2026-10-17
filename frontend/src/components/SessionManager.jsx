@@ -1,5 +1,6 @@
 import DocumentUpload from './DocumentUpload';
-import { HiOutlineDatabase, HiOutlineGlobeAlt, HiOutlineCube, HiX, HiOutlineDocumentText } from 'react-icons/hi';
+import API_BASE_URL from '../api/config';
+import { HiOutlineDatabase, HiOutlineGlobeAlt, HiOutlineCube, HiX, HiOutlineDocumentText, HiExternalLink } from 'react-icons/hi';
 
 export default function SessionManager({ sessions, setSessions, activeSessionId, setActiveSessionId, updateActiveSession, cleanupSessionOnServer, privacyMode, customQdrantUrl, onLoadingStateChange }) {
     const currentSession = sessions[activeSessionId] || { documents: [], selectedCollections: [] };
@@ -36,6 +37,30 @@ export default function SessionManager({ sessions, setSessions, activeSessionId,
         if (t === 'web') return <HiOutlineGlobeAlt />;
         if (t === 'text') return <HiOutlineDocumentText />;
         return <HiOutlineCube />;
+    };
+
+    const getDocumentUrl = (doc) => {
+        if (doc.url && doc.url.startsWith('http')) {
+            return doc.url;
+        }
+        if (doc.type === 'web' && doc.name) {
+            return doc.name.startsWith('http') ? doc.name : `https://${doc.name}`;
+        }
+        if (doc.source) {
+            if (doc.source.startsWith('http')) return doc.source;
+            const cleanSource = doc.source.startsWith('uploads/') ? doc.source : `uploads/${doc.source}`;
+            return `${API_BASE_URL}/${cleanSource}`;
+        }
+        return `${API_BASE_URL}/uploads/${encodeURIComponent(doc.name)}`;
+    };
+
+    const openDocument = (doc, e) => {
+        if (e && e.stopPropagation) e.stopPropagation();
+        if (doc.type === 'text') return; // plain text snippet has no document URL
+        const url = getDocumentUrl(doc);
+        if (url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+        }
     };
 
     const isAllSelected = documents.length > 0 && selectedCollections.length === documents.length;
@@ -118,23 +143,49 @@ export default function SessionManager({ sessions, setSessions, activeSessionId,
                                     }`}
                                 >
                                     <button
-                                        onClick={() => toggleCollection(doc.collection)}
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleCollection(doc.collection);
+                                        }}
                                         className={`w-3.5 h-3.5 rounded-[3px] border flex items-center justify-center shrink-0 transition-all ${
                                             sel ? 'bg-[#3b82f6] border-[#3b82f6]' : 'border-[#2a2d36] group-hover:border-[#3a3e4a]'
                                         }`}
+                                        title={sel ? "Deselect from feed" : "Select for feed"}
                                     >
                                         {sel && <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                                     </button>
 
                                     <div className="flex items-center gap-2 flex-1 min-w-0" onClick={() => updateActiveSession(() => ({ selectedCollections: [doc.collection] }))}>
-                                        <span className={`text-sm ${sel ? 'text-[#60a5fa]' : 'text-[#6b7280]'}`}>{getIcon(doc.type)}</span>
-                                        <div className="truncate">
-                                            <p className="text-xs font-medium text-[#eef0f3] truncate leading-tight">{doc.name}</p>
+                                        <span className={`text-sm shrink-0 ${sel ? 'text-[#60a5fa]' : 'text-[#6b7280]'}`}>{getIcon(doc.type)}</span>
+                                        <div className="truncate flex-1">
+                                            <p 
+                                                onClick={(e) => openDocument(doc, e)}
+                                                className={`text-xs font-medium text-[#eef0f3] truncate leading-tight flex items-center gap-1 transition-colors ${
+                                                    doc.type !== 'text' 
+                                                        ? 'hover:text-[#60a5fa] hover:underline underline-offset-2 cursor-pointer' 
+                                                        : ''
+                                                }`}
+                                                title={doc.type !== 'text' ? `Click to open ${doc.name}` : doc.name}
+                                            >
+                                                <span className="truncate">{doc.name}</span>
+                                                {doc.type !== 'text' && (
+                                                    <HiExternalLink size={11} className="opacity-0 group-hover:opacity-70 shrink-0 text-[#60a5fa] transition-opacity" />
+                                                )}
+                                            </p>
                                             <p className="text-[10px] text-[#6b7280] font-mono mt-0.5">{doc.type} • {doc.size || 'Auto'}</p>
                                         </div>
                                     </div>
 
-                                    <button onClick={() => removeDocument(doc.id)} className="p-1 text-[#6b7280] hover:text-[#f87171] opacity-0 group-hover:opacity-100 transition-all">
+                                    <button 
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeDocument(doc.id);
+                                        }} 
+                                        className="p-1 text-[#6b7280] hover:text-[#f87171] opacity-0 group-hover:opacity-100 transition-all"
+                                        title="Remove from feed"
+                                    >
                                         <HiX size={13} />
                                     </button>
                                 </div>

@@ -19,6 +19,7 @@ from app.data_ingestion import (
     delete_session_collections
 )
 from app.cache.semantic_cache import semantic_cache
+from app.services.s3 import s3_service
 
 
 router = APIRouter(prefix="/chat", tags=["Chat & Indexing"])
@@ -255,23 +256,51 @@ async def index_pdf(
             content={"error": "Missing file or session"}
         )
     try:
-        uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
-        os.makedirs(uploads_dir, exist_ok=True)
-        file_path = os.path.join(uploads_dir, file.filename)
+        content = await file.read()
+        filename = file.filename or "document.pdf"
+        s3_meta = None
 
-        with open(file_path, "wb") as f:
-            content = await file.read()
-            f.write(content)
+        if s3_service.is_configured():
+            # Stream directly to AWS S3 without persisting to local server disk
+            s3_meta = await s3_service.upload_file_async(
+                file_content=content,
+                filename=filename,
+                content_type=file.content_type,
+                session_id=sessionId
+            )
+            source_identifier = s3_meta["key"]
+        else:
+            # Fallback to local server disk storage if S3 bucket is not yet configured in .env
+            uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+            os.makedirs(uploads_dir, exist_ok=True)
+            file_path = os.path.join(uploads_dir, filename)
+            with open(file_path, "wb") as f:
+                f.write(content)
+            source_identifier = f"uploads/{filename}"
 
         # Smart routing: if an image is uploaded to the document endpoint, use OCR image indexer
-        if file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff')):
+        if filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff')):
             collection_name = generate_collection_name(sessionId, "image")
-            await image_indexer(file_path, collection_name, qdrantUrl)
-            return {"message": "Indexed", "collectionName": collection_name}
+            await image_indexer(content, collection_name, qdrantUrl, source_identifier=source_identifier)
+            return {
+                "message": "Indexed",
+                "collectionName": collection_name,
+                "storage": "s3" if s3_meta else "local",
+                "source": source_identifier,
+                "s3Url": s3_meta.get("url") if s3_meta else None,
+                "presignedUrl": s3_meta.get("presigned_url") if s3_meta else None
+            }
 
         collection_name = generate_collection_name(sessionId, "pdf")
-        await pdf_indexer(file_path, collection_name, qdrantUrl)
-        return {"message": "Indexed", "collectionName": collection_name}
+        await pdf_indexer(content, collection_name, qdrantUrl, source_identifier=source_identifier)
+        return {
+            "message": "Indexed",
+            "collectionName": collection_name,
+            "storage": "s3" if s3_meta else "local",
+            "source": source_identifier,
+            "s3Url": s3_meta.get("url") if s3_meta else None,
+            "presignedUrl": s3_meta.get("presigned_url") if s3_meta else None
+        }
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -290,17 +319,36 @@ async def index_image(
             content={"error": "Missing file or session"}
         )
     try:
-        uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
-        os.makedirs(uploads_dir, exist_ok=True)
-        file_path = os.path.join(uploads_dir, file.filename)
+        content = await file.read()
+        filename = file.filename or "image.png"
+        s3_meta = None
 
-        with open(file_path, "wb") as f:
-            content = await file.read()
-            f.write(content)
+        if s3_service.is_configured():
+            s3_meta = await s3_service.upload_file_async(
+                file_content=content,
+                filename=filename,
+                content_type=file.content_type,
+                session_id=sessionId
+            )
+            source_identifier = s3_meta["key"]
+        else:
+            uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+            os.makedirs(uploads_dir, exist_ok=True)
+            file_path = os.path.join(uploads_dir, filename)
+            with open(file_path, "wb") as f:
+                f.write(content)
+            source_identifier = f"uploads/{filename}"
 
         collection_name = generate_collection_name(sessionId, "image")
-        await image_indexer(file_path, collection_name, qdrantUrl)
-        return {"message": "Indexed", "collectionName": collection_name}
+        await image_indexer(content, collection_name, qdrantUrl, source_identifier=source_identifier)
+        return {
+            "message": "Indexed",
+            "collectionName": collection_name,
+            "storage": "s3" if s3_meta else "local",
+            "source": source_identifier,
+            "s3Url": s3_meta.get("url") if s3_meta else None,
+            "presignedUrl": s3_meta.get("presigned_url") if s3_meta else None
+        }
     except Exception as e:
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -337,10 +385,17 @@ async def cleanup_session(session_id: str, req: Optional[CleanupRequest] = None)
     try:
         qdrant_url = req.qdrantUrl if req else None
         res = await delete_session_collections(session_id, qdrant_url)
+
+        # Purge session files from S3 if configured
+        s3_deleted = 0
+        if s3_service.is_configured():
+            s3_deleted = await s3_service.delete_session_files_async(session_id)
+
         return {
             "message": "Cleaned up",
             "deleted": res.get("deleted", 0),
-            "collections": res.get("collections", [])
+            "collections": res.get("collections", []),
+            "s3_deleted_files": s3_deleted
         }
     except Exception as e:
         return JSONResponse(

@@ -1,15 +1,21 @@
+from typing import Union, Optional
 import re
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from app.utils.ai import get_embeddings
 from app.data_ingestion.base import chunk_array, run_incremental_indexing
 from app.data_ingestion.ocr import extract_text_from_image_async
 
-async def image_indexer(image_file_path: str, collection_name: str, qdrant_url: str = None):
+async def image_indexer(
+    image_input: Union[str, bytes],
+    collection_name: str,
+    qdrant_url: str = None,
+    source_identifier: Optional[str] = None
+):
     """
     Ingests and indexes standalone image files (PNG, JPG, JPEG, WEBP, TIFF)
-    using Tesseract OCR.
+    using Tesseract OCR. Supports file paths or in-memory bytes.
     """
-    text = await extract_text_from_image_async(image_file_path)
+    text = await extract_text_from_image_async(image_input)
     text = text.strip() if text else ""
 
     if not text:
@@ -21,10 +27,12 @@ async def image_indexer(image_file_path: str, collection_name: str, qdrant_url: 
     splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     chunks = splitter.split_text(cleaned_text)
 
+    source_meta = source_identifier or (image_input if isinstance(image_input, str) else "uploaded_image")
+
     docs = [{
         "pageContent": f"search_document: {c}",
         "metadata": {
-            "source": image_file_path,
+            "source": source_meta,
             "file_type": "image",
             "is_ocr": True
         }

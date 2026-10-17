@@ -158,8 +158,12 @@ def extract_sources(all_docs: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     for doc in all_docs:
         meta = doc.get("metadata") or {}
         raw_src = meta.get("source") or meta.get("url") or meta.get("fileName") or "Unknown"
-        if "/uploads/" in raw_src:
+        if raw_src.startswith("http://") or raw_src.startswith("https://"):
+            src = raw_src
+        elif "/uploads/" in raw_src:
             src = "uploads/" + raw_src.split("/uploads/")[-1]
+        elif raw_src.startswith("uploads/"):
+            src = raw_src
         else:
             src = raw_src
         if src not in seen:
