@@ -93,16 +93,11 @@ export default function MessageBubble({ message }) {
                 </span>
               </div>
 
-              {/* Status Badge: Active Streaming vs Grounded */}
-              {isStreaming ? (
+              {/* Status Badge: Active Streaming */}
+              {isStreaming && (
                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#3b82f6]/10 border border-[#3b82f6]/40 rounded text-[10px] font-medium text-[#60a5fa] font-mono tech-scanning-bar">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#60a5fa] animate-ping" />
                   <span>SYNTHESIZING...</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#08090b] border border-[#2a2d36] rounded text-[10px] font-medium text-[#9ca3af] font-mono">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#34d399]" />
-                  <span>GROUNDED</span>
                 </div>
               )}
 
@@ -284,7 +279,6 @@ export default function MessageBubble({ message }) {
                   <HiOutlineDatabase size={11} className="text-[#3b82f6]" />
                   Neural Citations & References
                 </span>
-                <span className="text-[10px] text-[#4b5563]">Grounded Hybrid Layer</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[...new Map(message.sources.map(s => [s.id, s])).values()].map(src => (
@@ -314,10 +308,6 @@ export default function MessageBubble({ message }) {
       <div className="flex-1 max-w-[85%] sm:max-w-[75%] space-y-1.5">
         {/* User Capsule Meta Header */}
         <div className="flex items-center justify-end gap-2 pr-1">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#08090b]/80 border border-[#1f2229] text-[10px] font-mono text-[#60a5fa]">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] shadow-[0_0_6px_#38bdf8] animate-pulse"></span>
-            <span className="font-semibold tracking-wider">OPERATOR</span>
-          </div>
           <button 
             onClick={handleCopy}
             className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono transition-all border ${

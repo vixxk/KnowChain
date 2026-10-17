@@ -228,7 +228,7 @@ export default function InfoDashboard() {
 									</div>
 								)}
 							</div>
-							<p className="text-[10px] text-[#6b7280] font-sans">Answers grounded in source context</p>
+							<p className="text-[10px] text-[#6b7280] font-sans">Answers verified against source context</p>
 						</div>
 
 						{/* Card 4: Answer Relevancy */}
@@ -872,7 +872,7 @@ export default function InfoDashboard() {
 									<div className="flex items-center justify-between">
 										<div className="flex items-center gap-2">
 											<span className="px-1.5 py-0.5 bg-[#08090b] border border-[#2a2d36] text-[10px] text-[#60a5fa] rounded font-bold">Span 3: generate</span>
-											<span className="text-[#9ca3af] text-[11px] font-sans">Context Synthesis & Grounding</span>
+											<span className="text-[#9ca3af] text-[11px] font-sans">Context Synthesis & Generation</span>
 										</div>
 										<span className="text-[#34d399] text-[11px] font-semibold">
 											₹{(parseFloat(selectedTrace.cost_usd || 0.00045) * 84 * 0.60).toFixed(4)} (${(parseFloat(selectedTrace.cost_usd || 0.00045) * 0.60).toFixed(6)})
